@@ -1,7 +1,20 @@
-# Unfold Phonon
+# unPHold
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17714100.svg)](https://doi.org/10.5281/zenodo.17714100)
 
-This repository contains tools for unfolding moire phonon bands.
+Phonon band unfolding from supercells to primitive cells, with mode-character metrics.
+Designed for moiré and twisted bilayer systems; works for any supercell geometry.
 
-The original code is available in the GitHub repository `zekunlou/mypytools`, specifically in the file `mypytools/pkg_utils/phonopy.py` at commit `215d6be58d`.
+## Installation
+
+```bash
+pip install .
+```
+
+Or in editable mode for development:
+
+```bash
+pip install -e ".[dev]"
+```
+
+**Dependencies**: Python ≥ 3.10, NumPy, ASE, Phonopy, tqdm.
