@@ -1,0 +1,34 @@
+site_name: unPHold
+site_url: https://unphold.readthedocs.io/
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - API:
+      - Unfolding: api/unfold.md
+      - Metrics: api/metrics.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences
+  - footnotes
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js

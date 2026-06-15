@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "unPHold"
 version = "0.1.0"
-description = "Phonon band unfolding from supercells to primitive cells, with mode character metrics"
+description = "Phonon band unfolding for supercells: relaxation-aware, layer-resolved, and MLIP-compatible"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
@@ -25,8 +25,9 @@ dev = [
     "pytest-cov",
 ]
 docs = [
-    "mkdocs-material>=9.0",
+    "mkdocs>=1.5",
     "mkdocstrings[python]>=0.24",
+    "pymdown-extensions>=10.0",
 ]
 
 [project.urls]
