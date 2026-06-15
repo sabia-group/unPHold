@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "unPHold"
+version = "0.1.0"
+description = "Phonon band unfolding from supercells to primitive cells, with mode character metrics"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Zekun Lou", email = "zekun.lou@mpsd.mpg.de" },
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "ase>=3.22",
+    "phonopy>=2.20",
+    "tqdm>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+docs = [
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/sabia-group/unPHold"
+Repository = "https://github.com/sabia-group/unPHold"
+
+[tool.hatch.build.targets.wheel]
+packages = ["unphold"]
