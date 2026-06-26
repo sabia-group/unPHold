@@ -10,7 +10,6 @@ Provides:
 import os
 import pickle
 import time
-from typing import Literal, Optional, Union
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
@@ -75,11 +74,11 @@ class Unfold:
         supercell: aseAtoms,
         transformation_matrix: numpy.ndarray,
         transformation_matrix_ph: numpy.ndarray = None,
-        angle: Optional[float] = None,
+        angle: float | None = None,
         spatial_tolerance: float = 5e-2,
-        unfold_atoms_indices: Optional[numpy.ndarray] = None,
-        perm_idx_i2g: Optional[numpy.ndarray] = None,
-        perm_idx_g2i: Optional[numpy.ndarray] = None,
+        unfold_atoms_indices: numpy.ndarray | None = None,
+        perm_idx_i2g: numpy.ndarray | None = None,
+        perm_idx_g2i: numpy.ndarray | None = None,
         verbose: bool = False,
     ):
         """
@@ -168,7 +167,7 @@ class Unfold:
     def set_kpts_in_unitcell(
         self,
         kpts: numpy.ndarray,
-        format: Literal["fractional", "cartesian"] = "fractional",
+        format: str = "fractional",
     ):
         """Set the k-points to evaluate, given in the primitive-cell BZ.
 
@@ -193,9 +192,9 @@ class Unfold:
 
     def calculate_sc_phonon(
         self,
-        dyn_sc: Union[DynamicalMatrix, DynamicalMatrixNAC],
-        factor: Union[float, str] = VaspToEv,
-        save_fpath: Optional[str] = None,
+        dyn_sc: DynamicalMatrix | DynamicalMatrixNAC,
+        factor: float | str = VaspToEv,
+        save_fpath: str | None = None,
     ):
         """Diagonalise the supercell dynamical matrix along the set k-path.
 
@@ -321,8 +320,8 @@ class Unfold:
 
     def calculate_band_expansion(
         self,
-        grid: Optional[numpy.ndarray] = None,
-        sigma: Optional[float] = None,
+        grid: numpy.ndarray | None = None,
+        sigma: float | None = None,
     ) -> tuple:
         """Project weighted supercell bands onto an energy grid.
 
@@ -413,10 +412,7 @@ class UnfoldTwistBilayer:
         )
 
 
-# ---------------------------------------------------------------------------
 # K-path utility
-# ---------------------------------------------------------------------------
-
 
 def concatenate_bands(
     kpts: list,

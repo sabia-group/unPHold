@@ -5,23 +5,17 @@ acoustic participation ratio (APR), longitudinality (L), verticality (V),
 and Gaussian band expansion for plotting.
 """
 
-from typing import Union
-
 import numpy
 from ase.atoms import Atoms as aseAtoms
+
 from phonopy import Phonopy
 
 from .atoms import atoms_ph2ase
 
 
-# ---------------------------------------------------------------------------
-# Band expansion
-# ---------------------------------------------------------------------------
-
-
 def gaussian_function(
     x: numpy.ndarray,
-    mu: Union[int, numpy.ndarray] = 0,
+    mu: int | numpy.ndarray = 0,
     sigma: float = 1e-2,
 ) -> numpy.ndarray:
     """Gaussian (normal) distribution function.
@@ -67,11 +61,6 @@ def band_expansion(
     if grid_delta_min > sigma:
         print(f"Warning: grid delta is larger than sigma: {grid_delta_min:.3e} > {sigma:.3e}")
     return gaussian_function(grid, energies, sigma)
-
-
-# ---------------------------------------------------------------------------
-# Acoustic Participation Ratio (APR)
-# ---------------------------------------------------------------------------
 
 
 def compute_APR_from_phonopy(ph: Phonopy) -> list:
@@ -154,11 +143,6 @@ def compute_APR(
     return apr
 
 
-# ---------------------------------------------------------------------------
-# Longitudinality (L)
-# ---------------------------------------------------------------------------
-
-
 def compute_L_from_phonopy(ph: Phonopy) -> list:
     """Compute longitudinality for all k-path segments from a Phonopy object.
 
@@ -217,11 +201,6 @@ def compute_L(
     lgt = lgt.mean(axis=1)
     lgt = natoms**0.5 * numpy.abs(lgt)
     return lgt
-
-
-# ---------------------------------------------------------------------------
-# Verticality (V)
-# ---------------------------------------------------------------------------
 
 
 def compute_V(
@@ -284,11 +263,6 @@ def compute_V_p2(
     vtcl2 = numpy.abs(ph_eigvec_normed[:, :, 2, :])
     vtcl2 = numpy.sum(vtcl2**2, axis=1)
     return vtcl2
-
-
-# ---------------------------------------------------------------------------
-# Rotation utility
-# ---------------------------------------------------------------------------
 
 
 def rotmat_xOy(angle: float) -> numpy.ndarray:
