@@ -28,6 +28,6 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install package and dev deps
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[all]"
       - name: Run tests
         run: pytest tests/ -v -m "not slow"

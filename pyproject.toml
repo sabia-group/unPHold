@@ -20,6 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+all = ["unPHold[dev,docs]"]
 dev = [
     "pytest>=7.0",
     "pytest-cov",
