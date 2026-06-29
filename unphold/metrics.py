@@ -7,60 +7,9 @@ and Gaussian band expansion for plotting.
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
-
 from phonopy import Phonopy
 
-from .atoms import atoms_ph2ase
-
-
-def gaussian_function(
-    x: numpy.ndarray,
-    mu: int | numpy.ndarray = 0,
-    sigma: float = 1e-2,
-) -> numpy.ndarray:
-    """Gaussian (normal) distribution function.
-
-    Args:
-        x (numpy.ndarray): Input array.
-        mu (Union[int, numpy.ndarray]): Mean(s). If ndarray, output is a tensor product
-            of shape ``(*mu.shape, *x.shape)``.
-        sigma (float): Standard deviation.
-
-    Returns:
-        numpy.ndarray: Gaussian values.
-
-    Raises:
-        ValueError: If ``mu`` is neither int nor numpy.ndarray.
-    """
-    if isinstance(mu, int):
-        pass
-    elif isinstance(mu, numpy.ndarray):
-        assert x.ndim == 1
-        mu = mu[..., numpy.newaxis]
-    else:
-        raise ValueError("mu should be int or numpy.ndarray, but got " + str(type(mu)))
-    return numpy.exp(-((x - mu) ** 2) / (2 * sigma**2)) / (sigma * numpy.sqrt(2 * numpy.pi))
-
-
-def band_expansion(
-    energies: numpy.ndarray,
-    grid: numpy.ndarray,
-    sigma: float = 1e-2,
-) -> numpy.ndarray:
-    """Expand discrete band energies onto a grid via Gaussian broadening.
-
-    Args:
-        energies (numpy.ndarray): Band energies, shape ``(nbands,)``.
-        grid (numpy.ndarray): Energy grid, shape ``(ngrid,)``.
-        sigma (float): Gaussian broadening width (same units as energies).
-
-    Returns:
-        numpy.ndarray: Expanded values, shape ``(nbands, ngrid)``.
-    """
-    grid_delta_min = numpy.min(numpy.diff(grid))
-    if grid_delta_min > sigma:
-        print(f"Warning: grid delta is larger than sigma: {grid_delta_min:.3e} > {sigma:.3e}")
-    return gaussian_function(grid, energies, sigma)
+from .utils import atoms_ph2ase
 
 
 def compute_APR_from_phonopy(ph: Phonopy) -> list:
@@ -121,9 +70,7 @@ def compute_APR(
     natoms = natoms3 // 3
 
     masses_sqrt = numpy.sqrt(atoms.get_masses())
-    eigvec_div_mass_sqrt = (
-        ph_eigvecs.reshape(nqpoints, natoms, 3, nbands) / masses_sqrt[None, :, None, None]
-    )
+    eigvec_div_mass_sqrt = ph_eigvecs.reshape(nqpoints, natoms, 3, nbands) / masses_sqrt[None, :, None, None]
 
     inner_prod = numpy.einsum(
         "qaxn,qbxn->qabn",
@@ -277,7 +224,7 @@ def rotmat_xOy(angle: float) -> numpy.ndarray:
     return numpy.array(
         [
             [numpy.cos(angle), -numpy.sin(angle), 0],
-            [numpy.sin(angle),  numpy.cos(angle), 0],
-            [0,                 0,                1],
+            [numpy.sin(angle), numpy.cos(angle), 0],
+            [0, 0, 1],
         ]
     )

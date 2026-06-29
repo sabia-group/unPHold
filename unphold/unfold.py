@@ -4,7 +4,6 @@ Provides:
 
 - [`Unfold`][unphold.unfold.Unfold]: general supercell → unitcell phonon band unfolding
 - [`UnfoldTwistBilayer`][unphold.unfold.UnfoldTwistBilayer]: convenience wrapper for twisted bilayer systems (stub)
-- [`concatenate_bands`][unphold.unfold.concatenate_bands]: helper to merge k-path segments from Phonopy
 """
 
 import os
@@ -19,13 +18,12 @@ from phonopy.phonon.band_structure import BandStructure
 from phonopy.physical_units import get_physical_units as _get_phonopy_units
 from tqdm import tqdm
 
+from .utils import band_expansion, match_two_atoms
+
 _pu = _get_phonopy_units()
 VaspToTHz = _pu.DefaultToTHz
 VaspToEv = VaspToTHz * _pu.THzToEv
 VaspToCm = VaspToTHz * _pu.THzToCm
-
-from .atoms import match_two_atoms
-from .metrics import band_expansion
 
 
 class Unfold:
@@ -48,7 +46,8 @@ class Unfold:
     Example::
 
         from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
-        from unPHold import Unfold, concatenate_bands
+        from unphold import Unfold
+        from unphold.utils import concatenate_bands
 
         special_points = {
             "G": [0.0, 0.0, 0.0],
@@ -63,7 +62,7 @@ class Unfold:
         unfold = Unfold(unitcell, supercell, tmat, verbose=True)
         unfold.set_kpts_in_unitcell(kpts, format="fractional")
         unfold.calculate_sc_phonon(ph.dynamical_matrix, "meV")
-        unfold.calulate_weights()
+        unfold.calculate_weights()
         grid, sigma = unfold.calculate_band_expansion()
         # unfold.energies_on_grid has shape (nkpts, ngrid)
     """
@@ -265,9 +264,7 @@ class Unfold:
     def _calculate_weights_one_kpt(self, kpt_idx: int) -> numpy.ndarray:
         uc_natoms = len(self.uc)
         sc_natoms = len(self.sc)
-        sc_uf_natoms = (
-            len(self.unfold_atoms_indices) if self.unfold_atoms_indices is not None else sc_natoms
-        )
+        sc_uf_natoms = len(self.unfold_atoms_indices) if self.unfold_atoms_indices is not None else sc_natoms
 
         uc_modes = numpy.diag(numpy.ones(3 * uc_natoms)).reshape(uc_natoms, 3, 3 * uc_natoms)
         uc2sc_modes = numpy.tile(uc_modes, (self.nucs_in_sc, 1, 1))
@@ -292,7 +289,7 @@ class Unfold:
 
         return weights / self.nucs_in_sc
 
-    def calulate_weights(self):
+    def calculate_weights(self):
         """Calculate spectral weights for all k-points.
 
         Results are stored in ``self.weights``, shape ``(nkpts, sc_nbands)``.
@@ -357,9 +354,7 @@ class Unfold:
         )
         energies_on_grid = []
         for kpt_idx in iterator:
-            energies_on_grid.append(
-                self._calulate_band_expansion_one_kpt(kpt_idx, grid, sigma)
-            )
+            energies_on_grid.append(self._calulate_band_expansion_one_kpt(kpt_idx, grid, sigma))
         self.energies_on_grid = numpy.stack(energies_on_grid, axis=0)
         return grid, sigma
 
@@ -407,53 +402,5 @@ class UnfoldTwistBilayer:
 
     def __init__(self):
         raise NotImplementedError(
-            "UnfoldTwistBilayer is not yet implemented. "
-            "Use Unfold directly with unfold_atoms_indices."
+            "UnfoldTwistBilayer is not yet implemented. Use Unfold directly with unfold_atoms_indices."
         )
-
-
-# K-path utility
-
-def concatenate_bands(
-    kpts: list,
-    connections: list,
-) -> tuple:
-    """Merge Phonopy k-path segments and compute high-symmetry point indices.
-
-    Takes the output of ``phonopy.phonon.band_structure.get_band_qpoints_and_path_connections``
-    and removes duplicate boundary k-points where consecutive segments share an endpoint.
-
-    Args:
-        kpts (list[numpy.ndarray]): K-point arrays per segment, each shape ``(npts, 3)``.
-        connections (list[bool]): ``connections[i]`` is True if segment ``i`` and ``i+1``
-            share an endpoint.
-
-    Returns:
-        tuple:
-            - **kpts_concat** (numpy.ndarray): Concatenated k-points, shape ``(N, 3)``.
-            - **bz_label_indices** (list[int]): Indices into ``kpts_concat`` corresponding
-              to the high-symmetry points (for tick marks in plots).
-    """
-    assert len(kpts) == len(connections)
-    kpts_new = []
-    for i in range(len(kpts)):
-        if connections[i]:
-            kpts_new.append(kpts[i][:-1])
-        else:
-            kpts_new.append(kpts[i])
-
-    bz_label_indices = [0]
-    next_seg_begin = 0
-    for i in range(len(kpts)):
-        if connections[i]:
-            next_seg_begin += kpts[i].shape[0] - 1
-            bz_label_indices.append(next_seg_begin)
-        else:
-            next_seg_begin += kpts[i].shape[0]
-            if i != len(kpts) - 1:
-                bz_label_indices.append(next_seg_begin - 1)
-                bz_label_indices.append(next_seg_begin)
-            else:
-                bz_label_indices.append(next_seg_begin - 1)
-
-    return numpy.concatenate(kpts_new, axis=0), bz_label_indices
