@@ -39,6 +39,11 @@ Repository = "https://github.com/sabia-group/unPHold"
 [tool.hatch.build.targets.wheel]
 packages = ["unphold"]
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: tests that require large data or long compute (deselect with -m 'not slow')",
+]
+
 [tool.ruff]
 line-length = 120
 
