@@ -1,0 +1,50 @@
+site_name: unPHold
+site_url: https://unphold.readthedocs.io/
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Theory:
+      - Unfolding theory: theory/unfolding.md
+      - Mode character metrics: theory/metrics.md
+  - Tutorials:
+      - "Si: 3D bulk unfolding": tutorials/si.md
+      - "Graphene: 2D supercell unfolding": tutorials/graphene.md
+      - "Twisted bilayer: rigid rotation": tutorials/twisted_bilayer.md
+      - "Defect materials": tutorials/defect.md
+      - "MLIP + relaxation": tutorials/mlip_relaxed.md
+  - API Reference:
+      - Unfold: api/unfold.md
+      - Metrics: api/metrics.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: .
+  - footnotes
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/unphold_name.js

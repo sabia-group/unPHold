@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "unPHold"
+version = "0.1.0"
+description = "Phonon band unfolding for supercells: relaxation-aware, layer-resolved, and MLIP-compatible"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Zekun Lou", email = "zekun.lou@mpsd.mpg.de" },
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "ase>=3.22",
+    "phonopy>=3.0",
+    "tqdm>=4.0",
+]
+
+[project.optional-dependencies]
+all = ["unPHold[dev,docs]"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+]
+docs = [
+    "mkdocs>=1.5",
+    "mkdocstrings[python]>=0.24",
+    "pymdown-extensions>=10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sabia-group/unPHold"
+Repository = "https://github.com/sabia-group/unPHold"
+
+[tool.hatch.build.targets.wheel]
+packages = ["unphold"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: tests that require large data or long compute (deselect with -m 'not slow')",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I"]
+ignore = ["E203", "E501", "E722", "E741", "F401"]
+
+[tool.ruff.format]
+quote-style = "double"

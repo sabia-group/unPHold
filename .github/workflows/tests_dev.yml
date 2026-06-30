@@ -1,0 +1,36 @@
+name: CI (dev)
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff format --check unphold/
+      - run: ruff check unphold/
+
+  test:
+    name: Tests (phonopy ~=${{ matrix.phonopy-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        phonopy-version: ["3.0", "4.0"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install package and dev deps
+        run: pip install -e ".[all]" "phonopy~=${{ matrix.phonopy-version }}"
+      - name: Run tests
+        run: pytest tests/ -v -m "not slow"
