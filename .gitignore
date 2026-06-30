@@ -45,3 +45,6 @@ Thumbs.db
 
 # Large test data (tracked via Git LFS — use .gitattributes for LFS, not exclusion)
 # tests/data/large/ is LFS-tracked, not excluded
+
+# Example outputs (generated figures, not committed)
+examples/output/

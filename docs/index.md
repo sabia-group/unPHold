@@ -10,3 +10,4 @@
 - Phonon metrics: acoustic participation ratio (APR), longitudinality (L), and verticality (V).
 - Phonopy-compatible: reads force constants and band structures directly, easy to extend.
 
+<!-- TODO: catchy figure! -->

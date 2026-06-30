@@ -7,9 +7,17 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Usage: usage.md
-  - API:
-      - Unfolding: api/unfold.md
+  - Theory:
+      - Unfolding theory: theory/unfolding.md
+      - Mode character metrics: theory/metrics.md
+  - Tutorials:
+      - "Si: 3D bulk unfolding": tutorials/si.md
+      - "Graphene: 2D supercell unfolding": tutorials/graphene.md
+      - "Twisted bilayer: rigid rotation": tutorials/twisted_bilayer.md
+      - "Defect materials": tutorials/defect.md
+      - "MLIP + relaxation": tutorials/mlip_relaxed.md
+  - API Reference:
+      - Unfold: api/unfold.md
       - Metrics: api/metrics.md
 
 plugins:
@@ -24,11 +32,19 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: .
   - footnotes
+
+extra_css:
+  - stylesheets/extra.css
 
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/unphold_name.js

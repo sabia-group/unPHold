@@ -296,7 +296,7 @@ class Unfold:
         """
         weights = []
         iterator = (
-            tqdm(range(len(self.kpts_uc_frac)), desc="Projecting", ncols=64)
+            tqdm(range(len(self.kpts_uc_frac)), desc="Projecting", ncols=119)
             if self.verbose
             else range(len(self.kpts_uc_frac))
         )
@@ -348,7 +348,7 @@ class Unfold:
             assert isinstance(sigma, float) and sigma > 0
 
         iterator = (
-            tqdm(range(len(self.kpts_uc_frac)), desc="Building Grids", ncols=64)
+            tqdm(range(len(self.kpts_uc_frac)), desc="Building Grids", ncols=119)
             if self.verbose
             else range(len(self.kpts_uc_frac))
         )
