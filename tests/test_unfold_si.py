@@ -1,13 +1,13 @@
 """Integration tests for Unfold using Si FHI-aims data (uc_1_sc_2_aims / uc_2_sc_1_aims)."""
 
 import numpy
+from phonopy import Phonopy
 from phonopy.cui.load import load as load_phonopy
 from phonopy.file_IO import read_force_constants_hdf5
 from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
 
 from unphold import Unfold
 from unphold.utils import atoms_ph2ase, concatenate_bands, gaussian_function
-
 
 SI_TMAT = numpy.diag([2, 2, 2])
 
@@ -27,7 +27,7 @@ ENERGY_GRID = numpy.arange(-1.0, 18.0001, 0.01)
 SIGMA = 0.1
 
 
-def _load_si(data_dir, name, primitive_matrix=None):
+def _load_si(data_dir, name, primitive_matrix=None) -> Phonopy:
     """Load phonopy object + force constants for one Si run directory.
 
     Args:
@@ -41,7 +41,7 @@ def _load_si(data_dir, name, primitive_matrix=None):
     return ph
 
 
-def _build_si_kpts():
+def _build_si_kpts() -> tuple[list[numpy.ndarray], numpy.ndarray, list[bool], list[int]]:
     kpts_uc, connections = get_band_qpoints_and_path_connections(SI_KPATH, npoints=21)
     kpts_flat, bz_idx = concatenate_bands(kpts_uc, connections)
     return kpts_uc, kpts_flat, connections, bz_idx
@@ -90,8 +90,8 @@ def test_si_spectral_matches_uc(data_dir):
     unfold.set_kpts_in_unitcell(kpts_flat, format="fractional")
     unfold.calculate_sc_phonon(dyn_sc=ph_sc.dynamical_matrix, factor="thz")
     unfold.calculate_weights()
-    grid, _ = unfold.calculate_band_expansion(grid=ENERGY_GRID, sigma=SIGMA)
-    spectral_unfolded = unfold.energies_on_grid  # (nkpts, ngrid)
+    grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
+    spectral_unfolded = unfold.spectral_function_on_grid  # (nkpts, ngrid)
 
     # Build reference UC spectral function (weight=1 per mode)
     uc_freqs_flat = numpy.concatenate(

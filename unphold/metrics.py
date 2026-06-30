@@ -212,7 +212,7 @@ def compute_V_p2(
     return vtcl2
 
 
-def rotmat_xOy(angle: float) -> numpy.ndarray:
+def rotmat_xy(angle: float) -> numpy.ndarray:
     """3×3 rotation matrix for rotation about the z-axis.
 
     Args:

@@ -74,7 +74,7 @@ def main(output: Path):
 
     bs_uc = ph_uc._band_structure
     bs_sc = ph_sc._band_structure
-    k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_uc.distances, connections)])
+    k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_sc.distances, connections)])
 
     unfold = Unfold(
         unitcell=atoms_ph2ase(ph_uc.unitcell),
@@ -86,8 +86,8 @@ def main(output: Path):
     unfold.calculate_sc_phonon(dyn_sc=ph_sc.dynamical_matrix, factor="thz")
     unfold.calculate_weights()
 
-    grid, _ = unfold.calculate_band_expansion(grid=np.arange(-1.0, 18.0, 0.01), sigma=0.1)
-    spectral = unfold.energies_on_grid  # (nkpts, ngrid)
+    grid, _ = unfold.calculate_spectral_function_on_grid(grid=np.arange(-1.0, 18.0, 0.01), sigma=0.1)
+    spectral = unfold.spectral_function_on_grid  # (nkpts, ngrid)
 
     hsp_x = k_dist[bz_idx]
     norm = Normalize(vmin=0, vmax=np.percentile(spectral, 99.5))

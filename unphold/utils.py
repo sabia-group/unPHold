@@ -145,7 +145,7 @@ def band_expansion(
 def concatenate_bands(
     kpts: list,
     connections: list,
-) -> tuple:
+) -> tuple[numpy.ndarray, list[int]]:
     """Merge Phonopy k-path segments and compute high-symmetry point indices.
 
     Takes the output of ``phonopy.phonon.band_structure.get_band_qpoints_and_path_connections``
