@@ -15,7 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",
     "ase>=3.22",
-    "phonopy>=2.20",
+    "phonopy>=3.0",
     "tqdm>=4.0",
 ]
 

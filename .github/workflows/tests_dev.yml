@@ -20,14 +20,17 @@ jobs:
       - run: ruff check unphold/
 
   test:
-    name: Tests
+    name: Tests (phonopy ~=${{ matrix.phonopy-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        phonopy-version: ["3.0", "4.0"]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install package and dev deps
-        run: pip install -e ".[all]"
+        run: pip install -e ".[all]" "phonopy~=${{ matrix.phonopy-version }}"
       - name: Run tests
         run: pytest tests/ -v -m "not slow"
