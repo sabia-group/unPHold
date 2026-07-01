@@ -54,7 +54,7 @@ def test_si_weight_conservation(data_dir):
     kpts_uc, kpts_flat, connections, _ = _build_si_kpts()
     kpts_sc = [kpt @ SI_TMAT for kpt in kpts_uc]  # transfrom from fractional UC to fractional SC
 
-    ph_sc.run_band_structure(kpts_sc, path_connections=connections, labels=SI_BZ_PATH)
+    ph_sc.run_band_structure(kpts_sc, path_connections=connections, labels=SI_BZ_PATH[0])
 
     atoms_uc = atoms_ph2ase(_load_si(data_dir, "uc_1_sc_2_aims").unitcell)
     atoms_sc = atoms_ph2ase(ph_sc.unitcell)
@@ -80,8 +80,8 @@ def test_si_spectral_matches_uc(data_dir):
     kpts_uc, kpts_flat, connections, _ = _build_si_kpts()
     kpts_sc = [kpt @ SI_TMAT.T for kpt in kpts_uc]
 
-    ph_uc.run_band_structure(kpts_uc, path_connections=connections, labels=SI_BZ_PATH)
-    ph_sc.run_band_structure(kpts_sc, path_connections=connections, labels=SI_BZ_PATH)
+    ph_uc.run_band_structure(kpts_uc, path_connections=connections, labels=SI_BZ_PATH[0])
+    ph_sc.run_band_structure(kpts_sc, path_connections=connections, labels=SI_BZ_PATH[0])
 
     atoms_uc = atoms_ph2ase(ph_uc.unitcell)
     atoms_sc = atoms_ph2ase(ph_sc.unitcell)
