@@ -194,17 +194,21 @@ class Unfold:
         dyn_sc: DynamicalMatrix | DynamicalMatrixNAC,
         factor: float | str = VASP_TO_EV,
         save_fpath: str | None = None,
+        one_by_one: bool = False,
     ):
         """Diagonalise the supercell dynamical matrix along the set k-path.
 
-        This is the most expensive step. Progress cannot be tracked because it is
-        internal to Phonopy.
+        This is the most expensive step.
 
         Args:
             dyn_sc: Dynamical matrix from ``phonopy.dynamical_matrix``.
             factor (float or str): Energy unit conversion. Strings: ``"ev"``, ``"mev"``,
                 ``"thz"``, ``"cm"``. Default: ``VASP_TO_EV``.
             save_fpath (str, optional): Path to save results as ``.npz``.
+            one_by_one (bool): If True, diagonalise k-points one at a time with a
+                progress bar. If False (default), diagonalise all k-points in a
+                single Phonopy call (faster, but progress cannot be tracked since
+                it is internal to Phonopy).
         """
         if isinstance(factor, float):
             pass
@@ -216,15 +220,31 @@ class Unfold:
             raise ValueError(f"factor={factor!r} not supported")
 
         time_start = time.time()
-        bs_sc = BandStructure(
-            paths=[self.kpts_sc_frac],
-            dynamical_matrix=dyn_sc,
-            with_eigenvectors=True,
-            factor=factor,
-        )
+        if one_by_one:
+            iterator = tqdm(self.kpts_sc_frac, desc="Diagonalizing") if self.verbose else self.kpts_sc_frac
+            energies_list = []
+            eigenvecs_list = []
+            for kpt in iterator:
+                bs_sc = BandStructure(
+                    paths=[[kpt]],
+                    dynamical_matrix=dyn_sc,
+                    with_eigenvectors=True,
+                    factor=factor,
+                )
+                energies_list.append(bs_sc.frequencies[0][0])
+                eigenvecs_list.append(bs_sc.eigenvectors[0][0])
+            self.bs_sc_energies = numpy.array(energies_list)
+            self.bs_sc_eigenvecs = numpy.array(eigenvecs_list)
+        else:
+            bs_sc = BandStructure(
+                paths=[self.kpts_sc_frac],
+                dynamical_matrix=dyn_sc,
+                with_eigenvectors=True,
+                factor=factor,
+            )
+            self.bs_sc_energies = bs_sc.frequencies[0]
+            self.bs_sc_eigenvecs = bs_sc.eigenvectors[0]
         time_end = time.time()
-        self.bs_sc_energies = bs_sc.frequencies[0]
-        self.bs_sc_eigenvecs = bs_sc.eigenvectors[0]
         print(
             f"Band structure: {time_end - time_start:.2f}s for {len(self.kpts_sc_frac)} k-points "
             f"({(time_end - time_start) / len(self.kpts_sc_frac):.3f}s/k-point)."
@@ -236,8 +256,8 @@ class Unfold:
             os.makedirs(os.path.dirname(save_fpath), exist_ok=True)
             numpy.savez(
                 file=save_fpath,
-                bs_sc_energies=bs_sc.frequencies[0],
-                bs_sc_eigenvecs=bs_sc.eigenvectors[0],
+                bs_sc_energies=self.bs_sc_energies,
+                bs_sc_eigenvecs=self.bs_sc_eigenvecs,
                 kpts_sc_frac=self.kpts_sc_frac,
                 factor=factor,
             )
