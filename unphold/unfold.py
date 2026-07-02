@@ -3,7 +3,6 @@
 Provides:
 
 - [`Unfold`][unphold.unfold.Unfold]: general supercell → unitcell phonon band unfolding
-- [`UnfoldTwistBilayer`][unphold.unfold.UnfoldTwistBilayer]: convenience wrapper for twisted bilayer systems (stub)
 """
 
 import os

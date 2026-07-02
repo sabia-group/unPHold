@@ -9,7 +9,7 @@ def test_import():
 
 
 def test_public_api():
-    from unphold import Unfold, UnfoldTwistBilayer
+    from unphold import Unfold
     from unphold.utils import concatenate_bands
     from unphold.metrics import compute_APR, compute_L, compute_V, compute_V_p2
     from unphold.utils import band_expansion, gaussian_function
