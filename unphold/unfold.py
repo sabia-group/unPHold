@@ -424,22 +424,3 @@ class Unfold:
         if not isinstance(loaded_obj, cls):
             raise TypeError(f"Loaded object is not an instance of {cls.__name__}")
         return loaded_obj
-
-
-class UnfoldTwistBilayer:
-    """Convenience wrapper for unfolding phonons in twisted bilayer systems.
-
-    Handles the geometry setup (twist angle, layer selection, permutation)
-    automatically, so the user only needs to provide the two monolayer unitcells
-    and the twist angle.
-
-    Note:
-        This class is a stub. Implementation is in progress.
-        Use [`Unfold`][unphold.unfold.Unfold] directly with an explicit `perm_sc2gen`
-        in the meantime.
-    """
-
-    def __init__(self):
-        raise NotImplementedError(
-            "UnfoldTwistBilayer is not yet implemented. Use Unfold directly with perm_sc2gen."
-        )
