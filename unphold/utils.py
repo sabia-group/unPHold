@@ -143,7 +143,7 @@ def match_two_atoms(
     a: aseAtoms,
     b: aseAtoms,
     spatial_tolerance: float = 1e-2,
-):
+) -> dict:
     """Match atoms between two ASE Atoms objects by position.
 
     Finds the permutation mapping a → b and b → a. Does not check species.

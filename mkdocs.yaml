@@ -19,6 +19,7 @@ nav:
   - API Reference:
       - Unfold: api/unfold.md
       - Metrics: api/metrics.md
+      - Utilities: api/utils.md
 
 plugins:
   - search
@@ -47,4 +48,3 @@ extra_css:
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
-  - javascripts/unphold_name.js
