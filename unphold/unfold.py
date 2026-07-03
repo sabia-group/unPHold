@@ -218,7 +218,7 @@ class Unfold:
         dyn_sc: DynamicalMatrix | DynamicalMatrixNAC,
         factor: float | str = VASP_TO_EV,
         save_fpath: str | None = None,
-        one_by_one: bool = False,
+        show_progress: bool = False,
     ):
         """Diagonalise the supercell dynamical matrix along the set k-path.
 
@@ -229,7 +229,7 @@ class Unfold:
             factor (float or str): Energy unit conversion. Strings: ``"ev"``, ``"mev"``,
                 ``"thz"``, ``"cm"``. Default: ``VASP_TO_EV``.
             save_fpath (str, optional): Path to save results as ``.npz``.
-            one_by_one (bool): If True, diagonalise k-points one at a time with a
+            show_progress (bool): If True, diagonalise k-points one at a time with a
                 progress bar. If False (default), diagonalise all k-points in a
                 single Phonopy call (faster, but progress cannot be tracked since
                 it is internal to Phonopy).
@@ -244,7 +244,7 @@ class Unfold:
             raise ValueError(f"factor={factor!r} not supported")
 
         time_start = time.time()
-        if one_by_one:
+        if show_progress:
             iterator = tqdm(self.kpts_sc_frac, desc="Diagonalizing") if self.verbose else self.kpts_sc_frac
             energies_list = []
             eigenvecs_list = []
