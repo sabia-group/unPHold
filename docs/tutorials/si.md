@@ -1,7 +1,7 @@
 # Si: 3D Bulk Unfolding
 
 In this section, we demonstrate how to unfold silicon phonon bands from a 2x2x2 supercell back to the primitive cell.
-The full script is available at [`examples/si_bulk_unfolding.py`](https://github.com/sabia-group/unPHold/blob/main/examples/si_bulk_unfolding.py).
+The full script is available at [`examples/unfold_si_bulk.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_si_bulk.py).
 The following code snippets are extracted from the full script.
 
 <figure markdown>
