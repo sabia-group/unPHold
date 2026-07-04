@@ -13,12 +13,14 @@ nav:
   - Tutorials:
       - "Si: 3D bulk unfolding": tutorials/si.md
       - "Graphene: 2D supercell unfolding": tutorials/graphene.md
-      - "Twisted bilayer: rigid rotation": tutorials/twisted_bilayer.md
+      - "Twisted bilayer graphene: 2D layer unfolding": tutorials/twisted_bilayer.md
       - "Defect materials": tutorials/defect.md
       - "MLIP + relaxation": tutorials/mlip_relaxed.md
   - API Reference:
       - Unfold: api/unfold.md
       - Metrics: api/metrics.md
+      - Visualization: api/visualize.md
+      - Utilities: api/utils.md
 
 plugins:
   - search
@@ -47,4 +49,3 @@ extra_css:
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
-  - javascripts/unphold_name.js

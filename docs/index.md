@@ -2,6 +2,8 @@
 
 **unPHold**: Phonon band unfolding for supercells: relaxation-aware, layer-resolved, and MLIP-compatible.
 
+GitHub repo: [sabia-group/unPHold](https://github.com/sabia-group/unPHold)
+
 ## Features
 
 - Unfold different materials: 3D, 2D, 1D, twisted bilayers, heterostructures, defects.

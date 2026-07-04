@@ -1,7 +1,7 @@
 # Si: 3D Bulk Unfolding
 
 In this section, we demonstrate how to unfold silicon phonon bands from a 2x2x2 supercell back to the primitive cell.
-The full script is available at [`examples/si_bulk_unfolding.py`](https://github.com/sabia-group/unPHold/blob/main/examples/si_bulk_unfolding.py).
+The full script is available at [`examples/unfold_si_bulk.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_si_bulk.py).
 The following code snippets are extracted from the full script.
 
 <figure markdown>
@@ -27,7 +27,7 @@ We can load above data and plot the phonon bands for both the primitive cell and
   <figcaption>Left: Si primitive-cell phonon bands, calculated with 2x2x2 supercell. Right: Si 2x2x2 supercell bands plotted in the primitive-cell BZ.</figcaption>
 </figure>
 
-### K-point path
+## K-point path
 
 The standard high-symmetry points for FCC are:
 
@@ -50,7 +50,7 @@ kpts_sc = [k @ TMAT.T for k in kpts_uc]
 `kpts_flat` has shape `(nkpts, 3)`: `Unfold` consumes a single flat array of k-points rather than phonopy's per-segment path format, since it evaluates every k-point independently.
 `kpts_uc` and `connections` are kept around to recover high-symmetry tick marks and reformat the unfolding output into the standard phonopy band format for plotting; see the full script for details.
 
-### Running the unfolding
+## Running the unfolding
 
 ```python
 unfold = Unfold(
@@ -67,7 +67,7 @@ unfold.calculate_weights()
 [`Unfold.calculate_sc_phonon()`][unphold.unfold.Unfold.calculate_sc_phonon] diagonalises the supercell dynamical matrix at each k-point.
 [`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] projects each SC eigenvector onto the primitive-cell plane waves, yielding `unfold.weights` of shape `(nkpts, n_sc_modes)`.
 
-### Validating unfolded phonon bands
+## Validating unfolded phonon bands
 
 To validate the unfolding weights, we can apply Gaussian expansion to the unfolded weights in the frequency axis and plot the unfolded spectral function:
 

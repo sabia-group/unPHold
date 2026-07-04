@@ -1,11 +1,11 @@
 """Si bulk phonon unfolding: recover 2-atom primitive-cell dispersion from a 2×2×2 supercell.
 
 Data: tests/data/si/
-    uc_1_sc_2_aims/  — 2-atom primitive cell, force constants from 2×2×2 SC displacements
-    uc_2_sc_1_aims/  — 2×2×2 SC as unit cell, used as the source for unfolding
+    uc_1_sc_2_aims/  - 2-atom primitive cell, force constants from 2×2×2 SC displacements
+    uc_2_sc_1_aims/  - 2×2×2 SC as unit cell, used as the source for unfolding
 
-Run from unPHold/:
-    python examples/si_bulk_unfolding.py
+Writes figures to examples/output/ (gitignored), regardless of the current working directory:
+    python examples/unfold_si_bulk.py
 """
 
 import argparse
@@ -22,6 +22,7 @@ from unphold import Unfold
 from unphold.utils import atoms_ph2ase, concatenate_bands
 
 DATA = Path(__file__).parent.parent / "tests" / "data" / "si"
+OUTPUT_DEFAULT = Path(__file__).parent / "output"
 TMAT = np.diag([2, 2, 2])
 
 # FCC Si: Γ–X–U|K–Γ–L
@@ -56,7 +57,7 @@ def _decorate_ax(ax, k_dist, hsp_x, grid):
 
 
 def _overlay_bands(ax, bs, color="red", alpha=0.5, lw=0.8):
-    for dist_seg, freq_seg in zip(bs.distances, bs.frequencies):
+    for dist_seg, freq_seg in zip(bs.distances, bs.frequencies, strict=True):
         for b in range(freq_seg.shape[1]):
             ax.plot(dist_seg, freq_seg[:, b], color=color, alpha=alpha, linewidth=lw)
 
@@ -74,7 +75,7 @@ def main(output: Path):
 
     bs_uc = ph_uc._band_structure
     bs_sc = ph_sc._band_structure
-    k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_sc.distances, connections)])
+    k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_sc.distances, connections, strict=True)])
 
     unfold = Unfold(
         unitcell=atoms_ph2ase(ph_uc.unitcell),
@@ -144,8 +145,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Si bulk phonon unfolding example")
     parser.add_argument(
         "--output",
-        default="output",
-        help="Directory for output figures (default: output); use ../docs/assets to update tutorial figures",
+        default=str(OUTPUT_DEFAULT),
+        help=f"Directory for output figures (default: {OUTPUT_DEFAULT}); use ../docs/assets to update tutorial figures",
     )
     args = parser.parse_args()
-    main(output=args.output)
+    main(output=Path(args.output))
