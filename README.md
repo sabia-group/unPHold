@@ -2,6 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17714100.svg)](https://doi.org/10.5281/zenodo.17714100)
 [![Documentation Status](https://readthedocs.org/projects/unphold/badge/?version=latest)](https://unphold.readthedocs.io/en/latest/?badge=latest)
+[![CI](https://github.com/sabia-group/unPHold/actions/workflows/tests_main.yml/badge.svg)](https://github.com/sabia-group/unPHold/actions/workflows/tests_main.yml)
 
 Phonon band unfolding from supercells to primitive cells, with mode-character metrics.
 Designed for moiré and twisted bilayer systems; works for any supercell geometry.
