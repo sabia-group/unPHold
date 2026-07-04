@@ -6,6 +6,7 @@ They are not part of the public API and should not be imported directly by users
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
+from ase.build import make_supercell
 from phonopy.structure.atoms import PhonopyAtoms
 
 
@@ -42,6 +43,37 @@ def atoms_ph2ase(atoms: PhonopyAtoms) -> aseAtoms:
         positions=atoms.positions,
         pbc=True,
     )
+
+
+def calculate_pc_rotation_angle(
+    atoms_pc: aseAtoms,
+    tmat: numpy.ndarray,
+) -> dict:
+    """Compute the z-rotation of a primitive cell that removes shear from its supercell image.
+
+    Building ``tmat @ atoms_pc`` directly generally leaves lattice vector 0 tilted off the
+    x-axis (e.g. for a moire supercell whose orientation was fixed by a separate relaxed
+    calculation). This rotates ``atoms_pc`` about *z* so that, after applying ``tmat``, its
+    first lattice vector lies along the x-axis, matching the orientation convention used by
+    a target supercell built the same way.
+
+    Args:
+        atoms_pc (aseAtoms): Primitive cell to rotate.
+        tmat (numpy.ndarray): Transformation matrix (supercell = tmat @ unitcell).
+
+    Returns:
+        dict: with keys:
+            - **atoms_pc_rot** (aseAtoms): ``atoms_pc``, rotated about *z*.
+            - **rot_angle_deg** (float): Rotation angle applied, in degrees.
+    """
+    sc_from_atoms_pc = make_supercell(atoms_pc, tmat)
+    rot_angle_deg = -numpy.degrees(numpy.arctan(sc_from_atoms_pc.cell[0, 1] / sc_from_atoms_pc.cell[0, 0]))
+    atoms_pc_rot = atoms_pc.copy()
+    atoms_pc_rot.rotate(rot_angle_deg, "z", rotate_cell=True)
+    return {
+        "atoms_pc_rot": atoms_pc_rot,
+        "rot_angle_deg": rot_angle_deg,
+    }
 
 
 def gaussian_function(
@@ -187,6 +219,99 @@ def match_two_atoms(
     return ret_dict
 
 
+def match_atoms_with_vacancies(
+    ideal: aseAtoms,
+    real: aseAtoms,
+    spatial_tolerance: float = 1e-2,
+) -> dict:
+    """Match atoms between an ideal (defect-free) structure and a real one with point vacancies.
+
+    Generalizes [`match_two_atoms`][unphold.utils.match_two_atoms] to unequal atom counts: every
+    atom in ``ideal`` is matched (minimum-image convention, same species) to its nearest neighbor
+    in ``real`` if one exists within ``spatial_tolerance``; unmatched ``ideal`` sites are point
+    vacancies. Intended for building [`Unfold`][unphold.unfold.Unfold]'s ``perm_sc2gen`` when the
+    structure actually used in a phonon calculation is missing some atoms relative to an ideal
+    periodic tiling (see ``Unfold``'s "Handling defects").
+
+    Only handles vacancies: ``real`` must have no atoms without an ideal counterpart (e.g. no
+    interstitials/adatoms), every atom of ``real`` is required to match some site of ``ideal``,
+    or matching fails. Does not search for a rigid registry shift between ``ideal`` and ``real``
+    (unlike
+    [`match_two_2d_atoms_pbc_with_2d_frac_shift`][unphold.utils.match_two_2d_atoms_pbc_with_2d_frac_shift]);
+    both structures must already share the same cell and origin (e.g. ``real`` built by relaxing
+    atomic positions only, starting from ``ideal`` with some atoms removed).
+
+    Args:
+        ideal (aseAtoms): Defect-free reference structure (e.g. from ``make_supercell``).
+        real (aseAtoms): Structure with point vacancies relative to ``ideal``.
+        spatial_tolerance (float): Position-matching tolerance in Angstrom (minimum-image).
+
+    Returns:
+        dict with keys:
+            - ``perm_real2ideal``: index array of shape ``(len(ideal),)`` such that
+              ``ideal == real[perm_real2ideal]`` at valid (non-vacancy) entries -- i.e. it is
+              *ideal-indexed* and its values are *real-valued* indices, following the same
+              ``X_A2B`` convention as [`match_two_atoms`][unphold.utils.match_two_atoms]
+              (``B = A[X_A2B]``, here A=real, B=ideal) and ``Unfold``'s own ``perm_sc2gen``
+              (``gen = sc[perm_sc2gen]``). Entry ``i`` is ``-1`` if ``ideal[i]`` is a vacancy.
+              ``None`` on failure.
+            - ``vacancy_indices``: indices into ``ideal`` with no real counterpart, or ``None`` on
+              failure.
+            - ``fail_reason``: string describing the failure, or ``None`` if successful.
+    """
+    ret_dict = {"perm_real2ideal": None, "vacancy_indices": None, "fail_reason": None}
+    if len(real) > len(ideal):
+        ret_dict["fail_reason"] = (
+            f"len(real)={len(real)} > len(ideal)={len(ideal)}: real has more atoms than ideal "
+            "(interstitials/adatoms are not supported)"
+        )
+        return ret_dict
+    if not numpy.allclose(ideal.cell[:], real.cell[:], atol=spatial_tolerance):
+        ret_dict["fail_reason"] = "cell mismatch"
+        return ret_dict
+
+    ideal = ideal.copy()
+    real = real.copy()
+    ideal.wrap()
+    real.wrap()
+
+    cell = numpy.array(ideal.cell[:])
+    frac_diff = ideal.get_scaled_positions()[:, None, :] - real.get_scaled_positions()[None, :, :]
+    frac_diff -= numpy.round(frac_diff)  # minimum-image convention
+    real_diff = frac_diff @ cell  # shape (n_ideal, n_real, 3)
+    atoms_dist = numpy.linalg.norm(real_diff, axis=2)
+
+    species_ideal = numpy.array(ideal.get_chemical_symbols())
+    species_real = numpy.array(real.get_chemical_symbols())
+    species_match = species_ideal[:, None] == species_real[None, :]
+    atoms_dist = numpy.where(species_match, atoms_dist, numpy.inf)
+
+    perm = numpy.full(len(ideal), -1, dtype=int)
+    nearest = numpy.argmin(atoms_dist, axis=1)
+    nearest_dist = atoms_dist[numpy.arange(len(ideal)), nearest]
+    within_tol = nearest_dist < spatial_tolerance
+    perm[within_tol] = nearest[within_tol]
+
+    matched = perm[perm >= 0]
+    if len(numpy.unique(matched)) != len(matched):
+        ret_dict["fail_reason"] = (
+            "match is not injective -- some real atoms matched to multiple ideal sites; "
+            "lower spatial_tolerance"
+        )
+        return ret_dict
+    if len(matched) != len(real):
+        ret_dict["fail_reason"] = (
+            f"{len(real) - len(matched)} real atom(s) did not match any ideal site within "
+            f"spatial_tolerance={spatial_tolerance} -- real may contain atoms/species not present "
+            "in ideal, or spatial_tolerance is too small"
+        )
+        return ret_dict
+
+    ret_dict["perm_real2ideal"] = perm
+    ret_dict["vacancy_indices"] = numpy.where(perm < 0)[0]
+    return ret_dict
+
+
 def match_two_2d_atoms_pbc_with_2d_frac_shift(
     a: aseAtoms,
     b: aseAtoms,
@@ -322,7 +447,7 @@ def match_two_2d_atoms_pbc_with_2d_frac_shift(
         # print(numpy.sum(atoms_dist < spatial_tolerance), len(a))  # for debug
 
         ### check if matched spatially, without checking species
-        # a bad candidate shift must not abort the search — just try the next one
+        # a bad candidate shift must not abort the search, just try the next one
         if_matched_spatially = True
         # step 1: check atoms' pairs within range
         if if_matched_spatially:

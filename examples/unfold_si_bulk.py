@@ -1,10 +1,10 @@
 """Si bulk phonon unfolding: recover 2-atom primitive-cell dispersion from a 2×2×2 supercell.
 
 Data: tests/data/si/
-    uc_1_sc_2_aims/  — 2-atom primitive cell, force constants from 2×2×2 SC displacements
-    uc_2_sc_1_aims/  — 2×2×2 SC as unit cell, used as the source for unfolding
+    uc_1_sc_2_aims/  - 2-atom primitive cell, force constants from 2×2×2 SC displacements
+    uc_2_sc_1_aims/  - 2×2×2 SC as unit cell, used as the source for unfolding
 
-Run from unPHold/:
+Writes figures to examples/output/ (gitignored), regardless of the current working directory:
     python examples/unfold_si_bulk.py
 """
 
@@ -22,6 +22,7 @@ from unphold import Unfold
 from unphold.utils import atoms_ph2ase, concatenate_bands
 
 DATA = Path(__file__).parent.parent / "tests" / "data" / "si"
+OUTPUT_DEFAULT = Path(__file__).parent / "output"
 TMAT = np.diag([2, 2, 2])
 
 # FCC Si: Γ–X–U|K–Γ–L
@@ -144,8 +145,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Si bulk phonon unfolding example")
     parser.add_argument(
         "--output",
-        default="output",
-        help="Directory for output figures (default: output); use ../docs/assets to update tutorial figures",
+        default=str(OUTPUT_DEFAULT),
+        help=f"Directory for output figures (default: {OUTPUT_DEFAULT}); use ../docs/assets to update tutorial figures",
     )
     args = parser.parse_args()
-    main(output=args.output)
+    main(output=Path(args.output))

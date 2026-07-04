@@ -1,4 +1,4 @@
-"""Smoke tests — verify the package is importable and core classes instantiate."""
+"""Smoke tests - verify the package is importable and core classes instantiate."""
 
 import numpy
 import pytest
@@ -100,6 +100,96 @@ def test_match_two_2d_atoms_pbc_with_2d_frac_shift_no_match():
     assert "atoms_dist_list" in result
 
 
+def test_match_atoms_with_vacancies_single_vacancy():
+    from ase.atoms import Atoms as aseAtoms
+
+    from unphold.utils import match_atoms_with_vacancies
+
+    cell = numpy.array([[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 20.0]])
+    ideal = aseAtoms(
+        symbols=["C", "C", "C"],
+        cell=cell,
+        positions=[[0.0, 0.0, 5.0], [1.0, 1.0, 5.0], [2.0, 2.0, 5.0]],
+        pbc=True,
+    )
+    real = ideal.copy()
+    del real[1]  # remove the middle atom -> single vacancy
+
+    result = match_atoms_with_vacancies(ideal, real, spatial_tolerance=1e-2)
+    assert result["fail_reason"] is None
+    numpy.testing.assert_array_equal(result["perm_real2ideal"], numpy.array([0, -1, 1]))
+    numpy.testing.assert_array_equal(result["vacancy_indices"], numpy.array([1]))
+
+
+def test_match_atoms_with_vacancies_no_vacancy_is_full_permutation():
+    from ase.atoms import Atoms as aseAtoms
+
+    from unphold.utils import match_atoms_with_vacancies
+
+    cell = numpy.array([[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 20.0]])
+    ideal = aseAtoms(
+        symbols=["C", "C"],
+        cell=cell,
+        positions=[[0.0, 0.0, 5.0], [1.0, 1.0, 5.0]],
+        pbc=True,
+    )
+    real = ideal.copy()
+
+    result = match_atoms_with_vacancies(ideal, real, spatial_tolerance=1e-2)
+    assert result["fail_reason"] is None
+    numpy.testing.assert_array_equal(result["perm_real2ideal"], numpy.array([0, 1]))
+    assert len(result["vacancy_indices"]) == 0
+
+
+def test_match_atoms_with_vacancies_interstitial_fails():
+    from ase.atoms import Atoms as aseAtoms
+
+    from unphold.utils import match_atoms_with_vacancies
+
+    cell = numpy.array([[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 20.0]])
+    ideal = aseAtoms(symbols=["C"], cell=cell, positions=[[0.0, 0.0, 5.0]], pbc=True)
+    real = aseAtoms(symbols=["C", "C"], cell=cell, positions=[[0.0, 0.0, 5.0], [1.5, 1.5, 5.0]], pbc=True)
+
+    result = match_atoms_with_vacancies(ideal, real, spatial_tolerance=1e-2)
+    assert result["perm_real2ideal"] is None
+    assert "interstitial" in result["fail_reason"] or "more atoms" in result["fail_reason"]
+
+
+def test_match_atoms_with_vacancies_species_mismatch_fails():
+    from ase.atoms import Atoms as aseAtoms
+
+    from unphold.utils import match_atoms_with_vacancies
+
+    cell = numpy.array([[3.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 20.0]])
+    ideal = aseAtoms(symbols=["C", "N"], cell=cell, positions=[[0.0, 0.0, 5.0], [1.0, 1.0, 5.0]], pbc=True)
+    real = aseAtoms(symbols=["C"], cell=cell, positions=[[1.0, 1.0, 5.0]], pbc=True)  # wrong species at this site
+
+    result = match_atoms_with_vacancies(ideal, real, spatial_tolerance=1e-2)
+    assert result["perm_real2ideal"] is None
+    assert result["fail_reason"] is not None
+
+
+def test_calculate_pc_rotation_angle_removes_shear():
+    from ase.atoms import Atoms as aseAtoms
+    from ase.build import make_supercell
+
+    from unphold.utils import calculate_pc_rotation_angle
+
+    # hexagonal graphene-like PC, deliberately tilted a few degrees off the x-axis
+    cell = numpy.array([[2.46, 0.0, 0.0], [1.23, 2.13042249, 0.0], [0.0, 0.0, 20.0]])
+    positions = numpy.array([[0.0, 0.0, 10.0], [1.23, 0.71014083, 10.0]])
+    atoms_pc = aseAtoms(symbols=["C", "C"], cell=cell, positions=positions, pbc=True)
+    atoms_pc.rotate(7.0, "z", rotate_cell=True)
+
+    tmat = numpy.array([[2, 0, 0], [0, 2, 0], [0, 0, 1]])
+    result = calculate_pc_rotation_angle(atoms_pc, tmat)
+    assert "atoms_pc_rot" in result and "rot_angle_deg" in result
+    assert len(result["atoms_pc_rot"]) == len(atoms_pc)
+
+    sc_rot = make_supercell(result["atoms_pc_rot"], tmat)
+    assert abs(sc_rot.cell[0, 1]) < 1e-8  # lattice vector 0 is now exactly along x
+
+
 def test_relax_by_spring_origin_spring_pulls_atom_back():
     from ase.atoms import Atoms as aseAtoms
 
@@ -123,6 +213,3 @@ def test_relax_by_spring_origin_spring_pulls_atom_back():
     relax.clear_springs()
     assert relax.get_spring_info() == {"origin_springs": 0, "layer_springs": 0, "neighbor_springs": 0}
 
-
-# TODO: add Unfold integration test with a minimal graphene 2x2 supercell
-# Requires phonopy force constants — either fixture files or a synthetic dynamical matrix

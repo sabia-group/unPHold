@@ -43,10 +43,10 @@ class Unfold:
     This one array covers what used to be three separate mechanisms:
 
     - **Atom reordering**: ``supercell`` and ``sc_by_mat`` list the same atoms in a
-      different order (the common case) — ``perm_sc2gen`` just encodes the permutation.
+      different order (the common case) - ``perm_sc2gen`` just encodes the permutation.
     - **Projecting a subset of atoms** (e.g. one layer of a bilayer): pass ``unitcell``/
       ``transformation_matrix`` for that one layer, and let ``perm_sc2gen`` map its ideal
-      sites onto the corresponding atoms in the *full* ``supercell`` — atoms belonging to
+      sites onto the corresponding atoms in the *full* ``supercell`` - atoms belonging to
       other layers simply never appear as values.
     - **Vacancies**: an ideal site with no real counterpart (e.g. a missing atom) is
       marked with ``-1``. Its row contributes a zero vector to the projection instead of
@@ -63,7 +63,7 @@ class Unfold:
     ``perm_sc2gen`` with ``-1``. The projector is built by zero-padding: an ideal site
     with no real counterpart contributes nothing to the inner product, rather than being
     excluded from the basis. One consequence is that the captured spectral weight is
-    then no longer exactly conserved — for $n_v$ point vacancies,
+    then no longer exactly conserved - for $n_v$ point vacancies,
 
     $$\\sum_n w_{k,n} = 3\\,N_{atoms}^{uc} - \\frac{3 n_v}{N_{uc}}$$
 
@@ -122,7 +122,7 @@ class Unfold:
                 ``(nucs_in_sc * len(unitcell),)``, one entry per atom of the ideal
                 Phonopy-generated supercell (``sc_by_mat``), giving the index of the
                 corresponding atom in ``supercell``, or ``-1`` if there is none (vacancy,
-                or an atom outside the region being projected — e.g. the other layer of
+                or an atom outside the region being projected - e.g. the other layer of
                 a bilayer). If ``None``, computed automatically by matching ``supercell``
                 to ``sc_by_mat`` position-by-position (requires equal atom counts and no
                 vacancies).
@@ -275,7 +275,7 @@ class Unfold:
         )
         if save_fpath is not None:
             if not save_fpath.endswith(".npz"):
-                print("WARNING: save_fpath should end with .npz — appending.")
+                print("WARNING: save_fpath should end with .npz - appending.")
                 save_fpath += ".npz"
             os.makedirs(os.path.dirname(save_fpath), exist_ok=True)
             numpy.savez(
@@ -368,7 +368,7 @@ class Unfold:
             sigma (float, optional): Gaussian broadening width (same units as energies).
 
         Returns:
-            tuple: ``(grid, sigma)`` — the grid and broadening used.
+            tuple: ``(grid, sigma)`` the grid and broadening used.
 
         After calling, ``self.spectral_function_on_grid`` has shape ``(nkpts, ngrid)``.
         """

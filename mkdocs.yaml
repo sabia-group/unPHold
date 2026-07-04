@@ -19,6 +19,7 @@ nav:
   - API Reference:
       - Unfold: api/unfold.md
       - Metrics: api/metrics.md
+      - Visualization: api/visualize.md
       - Utilities: api/utils.md
 
 plugins:

@@ -3,7 +3,7 @@
 Functions for plotting a structure's real-space cell, its reciprocal-space
 Brillouin zone and k-paths, and per-mode atomic displacement patterns
 (in-plane arrows, out-of-plane color). All functions operate on plain ASE
-``Atoms`` objects and plain arrays — they have no dependency on ``Unfold``.
+``Atoms`` objects and plain arrays, they have no dependency on ``Unfold``.
 """
 
 from itertools import product

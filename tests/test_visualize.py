@@ -1,4 +1,4 @@
-"""Smoke tests for unphold.visualize — synthetic data, no phonopy I/O."""
+"""Smoke tests for unphold.visualize on synthetic data, no phonopy I/O."""
 
 import matplotlib
 

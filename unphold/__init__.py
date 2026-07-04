@@ -1,4 +1,4 @@
-"""unPHold — Phonon band unfolding for moiré and supercell systems.
+"""unPHold: Phonon band unfolding for moiré and supercell systems.
 
 Public API
 ----------
