@@ -295,8 +295,7 @@ def match_atoms_with_vacancies(
     matched = perm[perm >= 0]
     if len(numpy.unique(matched)) != len(matched):
         ret_dict["fail_reason"] = (
-            "match is not injective -- some real atoms matched to multiple ideal sites; "
-            "lower spatial_tolerance"
+            "match is not injective -- some real atoms matched to multiple ideal sites; lower spatial_tolerance"
         )
         return ret_dict
     if len(matched) != len(real):

@@ -212,4 +212,3 @@ def test_relax_by_spring_origin_spring_pulls_atom_back():
 
     relax.clear_springs()
     assert relax.get_spring_info() == {"origin_springs": 0, "layer_springs": 0, "neighbor_springs": 0}
-
