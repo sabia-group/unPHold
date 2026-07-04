@@ -11,17 +11,16 @@ The following code snippets are extracted from the full script available at [`ex
   to the other and finding a commensurate cell. Visualization by OVITO.</figcaption>
 </figure>
 
-Bernal-stacked bilayer graphene has both layers sharing the same Brillouin zone (BZ), so its phonon bands are a direct band structure calculation, no unfolding needed.
-Twisting one layer breaks this: the two layers' lattices no longer share a common BZ, so their moiré cell only has one, much smaller, mini-BZ.
-A phonon calculation on the moiré cell folds every mode into this mini-BZ, and the resulting "spaghetti" of bands (shown further down) does not, by itself, tell us which modes still behave like an ordinary graphene monolayer.
-Unfolding recovers that monolayer-like picture: it projects the moiré cell's phonons onto one layer's PC BZ, so we can read off band character (acoustic vs. optical, which layer a mode lives on) the same way we would for an untwisted structure.
+Twisting one layer relative to the other produces a moiré pattern, and the two layers' Brillouin zones (BZ) no longer point in the same direction, so the moiré cell only has one, much smaller, mini-BZ.
+A phonon calculation on this cell folds every mode into the mini-BZ and gives dense bands.
+Since the two layers don't share a common PC BZ, we unfold onto one layer's PC BZ instead: this recovers the bilayer's actual band structure (TBG is still a bilayer, coupling and all), plotted in a BZ where we can characterize the bands (acoustic vs. optical, which layer a mode lives on).
 
 We also compute Bernal-stacked bilayer graphene (BLG) phonons as a reference, since its bands are simple and well understood, and use them to check the unfolded TBG spectrum against.
-In particular, BLG's layer-breathing mode (LBM) — the two layers rigidly moving in opposite directions out-of-plane — is a clean, single mode we can look for once we unfold the more complicated TBG case.
+In particular, BLG's layer-breathing mode (LBM, the two layers rigidly moving in opposite directions out-of-plane) is a clean, single mode we can look for once we unfold the more complicated TBG case.
 
 For generating twisted bilayer structures, see [this tutorial](https://how-tos.readthedocs.io/en/latest/twist_bilayer/twist_bilayer.html).
 
-**Naming convention used in this tutorial**: PC is the monolayer graphene primitive cell; SC is the rigid supercell obtained by tiling the PC with a transformation matrix (matching one TBG layer); UC is the actual TBG structure (both layers, relaxed).
+**Naming convention used in this tutorial**: PC is the monolayer graphene primitive cell; SC is one layer's supercell, either the ideal, rigid version built by tiling the PC with a transformation matrix, or the real, relaxed layer sliced directly out of the TBG structure, depending on context; UC is the actual TBG structure (both layers, relaxed).
 
 ---
 
@@ -53,8 +52,9 @@ ph_blg = load(blg_dir)
 
 ## Aligning the primitive cell orientation and Brillouin zone
 
-`tmat_l0 @ PC` builds an SC with the right shape, but not necessarily the right orientation: phonopy/ASE cells are defined up to an arbitrary rotation, so the generated SC can come out rotated relative to the actual TBG bottom layer.
-[`calculate_pc_rotation_angle()`][unphold.utils.calculate_pc_rotation_angle] finds the in-plane rotation of the PC that fixes this:
+When the TBG structure was built, its lattice vector 0 was intentionally aligned to the x-axis; the PC we load has no reason to follow that same orientation.
+So `tmat_l0 @ PC` builds an SC with the right shape, but generally the wrong orientation, rotated relative to the actual TBG bottom layer (l0).
+[`calculate_pc_rotation_angle()`][unphold.utils.calculate_pc_rotation_angle] finds the PC rotation that corrects this:
 
 ```python
 ret = calculate_pc_rotation_angle(atoms_gp_pc, tmat_l0)
@@ -66,7 +66,7 @@ atoms_pc_rot = ret["atoms_pc_rot"]
   <figcaption>
     Left: SC generated from the original PC, not aligned with the target.
     Middle: SC generated from the rotated PC, now aligned.
-    Right: the target TBG bottom layer (shallow blue), for comparison — same orientation as the middle panel.
+    Right: the target TBG bottom layer (shallow blue), for comparison, in the same orientation as the middle panel.
   </figcaption>
 </figure>
 
@@ -87,7 +87,7 @@ We compare the BLG reference bands against the raw (folded) TBG phonon bands on 
   ![TBG folded bands](../assets/tbg_tbg_uc_bands.png){ width=320 }
   <figcaption>
     Left: Bernal-stacked bilayer graphene phonon bands.
-    Right: raw phonon bands of the target TBG, plotted on the bottom layer PC BZ k-path — folded into a dense mesh by the moiré periodicity.
+    Right: raw phonon bands of the target TBG, plotted on the bottom layer PC BZ k-path, folded into a dense mesh by the moiré periodicity.
   </figcaption>
 </figure>
 
@@ -110,7 +110,7 @@ perm_sc2gen_l0 = layer0_indices[match_result["atoms_indices_a2b"]]
   ![Layer0 vs rigid PC supercell](../assets/tbg_tbg_l0.png){ width=700 }
   <figcaption>
     The ideal SC generated from the rotated PC (left) side by side with layer 0 sliced directly out of the real, relaxed moiré structure (right).
-    Lighter atoms in the right panel are pulled out-of-plane by the corrugation at AA-stacking regions.
+    Lighter atoms in the right panel are at AA-stacking regions, where the interlayer distance is larger.
   </figcaption>
 </figure>
 
@@ -138,9 +138,8 @@ We plot the broadened spectral function from the unfolding weights against the B
   </figcaption>
 </figure>
 
-The unfolded spectrum closely tracks the BLG reference, down to the small band splittings that interlayer coupling introduces, confirming that each layer of this lightly twisted bilayer still behaves like a monolayer once unfolded.
-Near Γ we also see the flat, non-dispersive LBM around 2.3 THz — we identify and visualize it next.
-One BLG mode does *not* show up as a resolvable peak here: the ~0.8 THz in-plane shear mode. Its unfolding weight is apparently too spread out across nearby folded bands to stand out in the spectral function.
+The unfolded TBG spectrum matches the Bernal bilayer results.
+Near Γ we also see the flat, non-dispersive LBM around 2.3 THz; we identify and visualize it next.
 
 ## Identifying and visualizing the breathing mode in TBG
 
@@ -160,7 +159,7 @@ For this TBG (twist angle 13.17°), this turns up a single, solid candidate:
 |    5 |     2.2820 | 0.0002 | 1.0000 | 0.4995 |
 
 APR ≈ 0 confirms it is optical (the LBM belongs to the anti-symmetric ZO branch); V_p2 = 1 confirms the displacement is almost purely out-of-plane.
-The weight is ≈ 0.5 because a purely out-of-plane, unit-normalized eigenvector splits its weight between the two layers in proportion to how many atoms each one has — here, half the atoms are in the bottom layer.
+The weight is ≈ 0.5 because a purely out-of-plane, unit-normalized eigenvector splits its weight between the two layers in proportion to how many atoms each one has, and here half the atoms are in the bottom layer.
 
 [`plot_layer_mode_2d`][unphold.visualize.plot_layer_mode_2d] visualizes the real-space displacement of this LBM:
 
@@ -189,8 +188,8 @@ The same 2.0–2.6 THz candidate search now turns up two modes instead of one:
 |   17 |     2.2822 | 0.0000 | 0.9992 | 0.4197 |
 |   24 |     2.3899 | 0.0000 | 0.9999 | 0.0799 |
 
-Both are still optical and almost purely out-of-plane, and their weights still add up to ≈ 0.5 — the LBM has split into two modes rather than disappeared.
-This is where the moiré's interlayer coupling shows up directly: coupling strength varies across the cell (strongest at AA stacking, weaker elsewhere), and that spatial pattern imprints itself on the breathing motion.
+Both are still optical and almost purely out-of-plane, and their weights still add up to ≈ 0.5, so the LBM has split into two modes rather than disappeared.
+With the larger moiré cell, the breathing amplitude is no longer spatially uniform but modulated over the moiré pattern itself:
 
 <figure markdown>
   ![Breathing mode, m6r1 band 17](../assets/tbg_m6r1_viz_lbm_17.png){ width=700 }
@@ -201,7 +200,7 @@ This is where the moiré's interlayer coupling shows up directly: coupling stren
 <figure markdown>
   ![Breathing mode, m6r1 band 24](../assets/tbg_m6r1_viz_lbm_24.png){ width=700 }
   <figcaption>Band 24 (2.39 THz, weight 0.08): a secondary, lower-weight mode with a nodal structure
-  across the moiré cell &mdash; a higher moiré-scale "harmonic" of the same interlayer motion.</figcaption>
+  across the moiré cell, a higher moiré-scale "harmonic" of the same interlayer motion.</figcaption>
 </figure>
 
-Band 17 peaks where the layers are most strongly coupled (AA stacking); band 24 instead changes sign across the cell, a higher-order standing wave of the same interlayer breathing motion.
+The moiré periodicity introduces spatially varying interlayer coupling, which reshapes the breathing mode's amplitude pattern: in band 17 the amplitude is largest at the AA-stacking region, while in band 24 the amplitude has opposite sign in different parts of the layer.
