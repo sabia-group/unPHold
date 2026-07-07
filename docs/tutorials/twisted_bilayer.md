@@ -127,6 +127,16 @@ unfold = Unfold(
 )
 ```
 
+The k-path setup and the `calculate_*` sequence are identical to the [Si tutorial](si.md):
+`kpts_uc_flat` is the flat array of k-points along the Γ-K-M-Γ path chosen above, in the layer-0 PC BZ.
+
+```python
+unfold.set_kpts_in_unitcell(kpts_uc_flat, format="fractional")
+unfold.calculate_sc_phonon(dyn_sc=ph_tbg.dynamical_matrix, factor="thz")
+unfold.calculate_weights()
+unfold.calculate_spectral_function_on_grid()
+```
+
 We plot the broadened spectral function from the unfolding weights against the BLG reference bands:
 
 <figure markdown>
@@ -174,7 +184,7 @@ The weight is ≈ 0.5 because a purely out-of-plane, unit-normalized eigenvector
 
 ## LBM splitting in a larger moiré cell
 
-The same workflow applies unchanged to a larger, more strongly coupled moiré cell (data at `tests/tbg/m_6_r_1_sc_1_mace`, twist angle 5.09°, 508 atoms):
+The same workflow applies unchanged to a larger, more strongly coupled moiré cell (data at `tests/data/tbg/m_6_r_1_sc_1_mace`, twist angle 5.09°, 508 atoms):
 
 <figure markdown>
   ![TBG m6r1 moire cell](../assets/tbg_m_6_r_1_uc_ovito.png){ width=340 }

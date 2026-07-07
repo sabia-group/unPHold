@@ -13,7 +13,7 @@ The following code snippets are extracted from the full script.
 
 ## Preparing inputs
 
-unPHold only needs `Phonopy` object of the supercell (usually reload from a `phonopy.yaml` file) with its force constants as input.
+unPHold only needs a `Phonopy` object of the supercell (usually reload from a `phonopy.yaml` file) with its force constants as input.
 One can refer to [this tutorial](https://how-tos.readthedocs.io/en/latest/phonopy_simple/phonopy_in_python.html) for a complete phonopy workflow in Python.
 
 We have prepared the 2x2x2 supercell data (`tests/data/si/uc_2_sc_1_aims/`) for unfolding, as well as the primitive cell data (`tests/data/si/uc_1_sc_2_aims/`) for reference.
@@ -36,7 +36,7 @@ The standard high-symmetry points for FCC are:
   <figcaption>FCC Brillouin zone with standard high-symmetry points. Image: <a href="https://fhi-aims-club.gitlab.io/tutorials/phonons-with-fhi-vibes/phonons/2_phonopy_basics/exercise-2/">FHI-vibes tutorial</a>.</figcaption>
 </figure>
 
-We use the k-path `Γ-X-U|K-Γ-L` in primitive cell BZ.
+We use the k-path `Γ-X-U|K-Γ-L` in the primitive cell BZ.
 A supercell built by repeating the primitive cell is described by an integer transformation matrix `TMAT`, where `supercell_vectors = TMAT @ unitcell_vectors`.
 For our 2x2x2 supercell, `TMAT = diag([2, 2, 2])`.
 This same matrix maps a k-point's fractional coordinates from the primitive-cell BZ to the (larger) supercell BZ, which is what lets us evaluate the supercell phonons at the k-points we actually care about:
@@ -48,6 +48,7 @@ kpts_sc = [k @ TMAT.T for k in kpts_uc]
 ```
 
 `kpts_flat` has shape `(nkpts, 3)`: `Unfold` consumes a single flat array of k-points rather than phonopy's per-segment path format, since it evaluates every k-point independently.
+`kpts_sc` is the same set of k-points expressed in the supercell BZ, used to compute the supercell reference bands shown above.
 `kpts_uc` and `connections` are kept around to recover high-symmetry tick marks and reformat the unfolding output into the standard phonopy band format for plotting; see the full script for details.
 
 ## Running the unfolding
@@ -75,7 +76,7 @@ To validate the unfolding weights, we can apply Gaussian expansion to the unfold
 unfold.calculate_spectral_function_on_grid()
 ```
 
-The `unfold.spectral_function_on_grid` unfolded spectral function recovers the primitive-cell dispersion, and actually filters the supercell bands:
+The `unfold.spectral_function_on_grid` unfolded spectral function recovers the primitive-cell dispersions:
 
 <figure markdown>
   ![Unfolded vs UC bands](../assets/si_unfolded_vs_uc.png){ width=300 }
