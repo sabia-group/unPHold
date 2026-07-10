@@ -34,15 +34,15 @@ class Unfold:
 
     where $N_{uc}$ is the number of primitive cells in the supercell.
 
-    The correspondence between the ideal, Phonopy-generated supercell (``sc_by_mat``,
+    The correspondence between the ideal, unit-cell-generated supercell (``sc_by_tmat``,
     built from ``unitcell`` and ``transformation_matrix``) and the real supercell
-    (``supercell``, whatever Phonopy actually diagonalised) is given by a single array,
-    ``perm_sc2gen``: for each atom in ``sc_by_mat``, the index of the corresponding atom
+    (``supercell``, which Phonopy actually diagonalised) is given by a single array,
+    ``perm_sc2gen``: for each atom in ``sc_by_tmat``, the index of the corresponding atom
     in ``supercell``, or ``-1`` if there is none.
 
     This one array covers what used to be three separate mechanisms:
 
-    - **Atom reordering**: ``supercell`` and ``sc_by_mat`` list the same atoms in a
+    - **Atom reordering**: ``supercell`` and ``sc_by_tmat`` list the same atoms in a
       different order (the common case) - ``perm_sc2gen`` just encodes the permutation.
     - **Projecting a subset of atoms** (e.g. one layer of a bilayer): pass ``unitcell``/
       ``transformation_matrix`` for that one layer, and let ``perm_sc2gen`` map its ideal
@@ -53,7 +53,7 @@ class Unfold:
       raising an error. See [Handling defects](#handling-defects) below.
 
     If ``perm_sc2gen`` is not supplied, it is computed automatically by matching
-    ``supercell`` and ``sc_by_mat`` position-by-position (see
+    ``supercell`` and ``sc_by_tmat`` position-by-position (see
     [`match_two_atoms`][unphold.utils.match_two_atoms]); this only works when the two
     have identical atom counts and no vacancies.
 
@@ -93,7 +93,6 @@ class Unfold:
         unfold.calculate_sc_phonon(ph.dynamical_matrix, "meV")
         unfold.calculate_weights()
         grid, sigma = unfold.calculate_spectral_function_on_grid()
-        # unfold.spectral_function_on_grid has shape (nkpts, ngrid)
     """
 
     def __init__(
@@ -120,11 +119,11 @@ class Unfold:
             spatial_tolerance (float): Atom-matching tolerance in Angstrom.
             perm_sc2gen (numpy.ndarray, optional): Index array of shape
                 ``(nucs_in_sc * len(unitcell),)``, one entry per atom of the ideal
-                Phonopy-generated supercell (``sc_by_mat``), giving the index of the
+                Phonopy-generated supercell (``sc_by_tmat``), giving the index of the
                 corresponding atom in ``supercell``, or ``-1`` if there is none (vacancy,
                 or an atom outside the region being projected - e.g. the other layer of
                 a bilayer). If ``None``, computed automatically by matching ``supercell``
-                to ``sc_by_mat`` position-by-position (requires equal atom counts and no
+                to ``sc_by_tmat`` position-by-position (requires equal atom counts and no
                 vacancies).
             verbose (bool): Show progress bars.
         """
@@ -133,7 +132,7 @@ class Unfold:
         self.tmat = transformation_matrix
         self.tmat_ph = transformation_matrix_ph
         self.angle = angle
-        self.sc_by_mat = None
+        self.sc_by_tmat = None
         self.perm_sc2gen = perm_sc2gen
         self.spatial_tolerance = spatial_tolerance
         self.verbose = verbose
@@ -155,16 +154,16 @@ class Unfold:
             sc_lattice = tmat @ uc_lattice
             uc_BZ      = tmat.T @ sc_BZ
         """
-        self.sc_by_mat = make_supercell(self.uc, self.tmat, wrap=False)
+        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False)
         if self.angle is not None:
             assert isinstance(self.angle, float)
-            self.sc_by_mat.rotate(self.angle, "z", rotate_cell=True)
+            self.sc_by_tmat.rotate(self.angle, "z", rotate_cell=True)
 
         if self.perm_sc2gen is not None:
             assert isinstance(self.perm_sc2gen, numpy.ndarray)
-            assert self.perm_sc2gen.shape == (len(self.sc_by_mat),), (
-                f"perm_sc2gen should have shape ({len(self.sc_by_mat)},) "
-                f"(one entry per atom of sc_by_mat), got {self.perm_sc2gen.shape}"
+            assert self.perm_sc2gen.shape == (len(self.sc_by_tmat),), (
+                f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
+                f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
             )
             _valid = self.perm_sc2gen >= 0
             assert numpy.all(self.perm_sc2gen[_valid] < len(self.sc)), "perm_sc2gen has out-of-range entries"
@@ -173,12 +172,12 @@ class Unfold:
             )
         else:
             print("WARNING: it is strongly recommended to provide perm_sc2gen")
-            _match = match_two_atoms(self.sc, self.sc_by_mat, spatial_tolerance=self.spatial_tolerance)
+            _match = match_two_atoms(self.sc, self.sc_by_tmat, spatial_tolerance=self.spatial_tolerance)
             if _match["fail_reason"] is not None:
                 raise ValueError(_match["fail_reason"])
             self.perm_sc2gen = _match["atoms_indices_a2b"]
 
-        self.nucs_in_sc = len(self.sc_by_mat) // len(self.uc)
+        self.nucs_in_sc = len(self.sc_by_tmat) // len(self.uc)
 
         self.uc_la = numpy.array(self.uc.cell)
         self.uc_bz = numpy.array(self.uc.cell.reciprocal())
@@ -308,7 +307,7 @@ class Unfold:
     def _calculate_weights_one_kpt(self, kpt_idx: int) -> numpy.ndarray:
         uc_natoms = len(self.uc)
         sc_natoms = len(self.sc)
-        gen_natoms = len(self.sc_by_mat)
+        gen_natoms = len(self.sc_by_tmat)
 
         uc_modes = numpy.diag(numpy.ones(3 * uc_natoms)).reshape(uc_natoms, 3, 3 * uc_natoms)
         uc2gen_modes = numpy.tile(uc_modes, (self.nucs_in_sc, 1, 1)).reshape(3 * gen_natoms, 3 * uc_natoms)
