@@ -2,6 +2,7 @@
 
 In this section, we unfold the phonon bands of a relaxed twisted bilayer graphene (TBG) structure onto a graphene primitive cell (PC).
 The following code snippets are extracted from the full script available at [`examples/unfold_tbg.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_tbg.py).
+The forces are obtained by a MACE model, with data available at [`tests/data/tbg`](https://github.com/sabia-group/unPHold/blob/main/tests/data/tbg).
 
 <figure markdown>
   ![Bernal bilayer PC](../assets/blg_pc_ovito.png){ width=220 }

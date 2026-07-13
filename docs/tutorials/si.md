@@ -2,11 +2,12 @@
 
 In this section, we demonstrate how to unfold silicon phonon bands from a 2x2x2 supercell back to the primitive cell.
 The full script is available at [`examples/unfold_si_bulk.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_si_bulk.py).
+The forces are obtained DFT calculation by [FHI-aims](https://www.fhi-aims.org/) and are available at [`tests/data/si`](https://github.com/sabia-group/unPHold/blob/main/tests/data/si).
 The following code snippets are extracted from the full script.
 
 <figure markdown>
   ![Si FCC unit cell](https://vasp.at/tutorials/latest/bulk/part1/e01_fcc-Si/fcc-unit-cell.png){ width=300 }
-  <figcaption>Si unit cell (left) and primitive cell (right). Image: <a href="https://vasp.at/tutorials/latest/bulk/part1/">VASP tutorials</a>.</figcaption>
+  <figcaption>FCC unit cell (left) and primitive cell (right). Image: <a href="https://vasp.at/tutorials/latest/bulk/part1/">VASP tutorials</a>.</figcaption>
 </figure>
 
 ---
