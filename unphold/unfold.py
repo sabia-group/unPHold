@@ -154,8 +154,9 @@ class Unfold:
             sc_lattice = tmat @ uc_lattice
             uc_BZ      = tmat.T @ sc_BZ
         """
-        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False)
-        self._assert_cell_major_order()
+        # order="cell-major" is load-bearing: the projection in _calculate_weights_one_kpt_v2
+        # assumes atom p * uc_natoms + kappa is the p-th copy of unit-cell atom kappa.
+        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False, order="cell-major")
         if self.angle is not None:
             assert isinstance(self.angle, float)
             self.sc_by_tmat.rotate(self.angle, "z", rotate_cell=True)
@@ -186,34 +187,6 @@ class Unfold:
         self.sc_bz = numpy.array(self.sc.cell.reciprocal())
         assert numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2)
         assert numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2)
-
-    def _assert_cell_major_order(self):
-        """Check that ``sc_by_tmat`` lists atoms cell-major.
-
-        The projection relies on atom ``p * uc_natoms + kappa`` of ``sc_by_tmat`` being the
-        ``p``-th copy of unit-cell atom ``kappa``. This is ASE's ``make_supercell`` default
-        (``order="cell-major"``), but nothing in the array shapes would catch a change: a
-        different ordering would silently mis-assign copies and yield wrong weights rather
-        than raise. Verify it explicitly, before any rotation is applied.
-        """
-        uc_natoms = len(self.uc)
-        nucs_in_sc = len(self.sc_by_tmat) // uc_natoms
-        msg = (
-            "sc_by_tmat is not in cell-major order (atom p * uc_natoms + kappa must be the "
-            "p-th copy of unit-cell atom kappa); the unfolding projection assumes it."
-        )
-
-        numbers = self.sc_by_tmat.get_atomic_numbers().reshape(nucs_in_sc, uc_natoms)
-        assert numpy.all(numbers == self.uc.get_atomic_numbers()), msg
-
-        # Within one cell-major block, every atom must be displaced from its unit-cell
-        # counterpart by the same lattice translation R_p.
-        shifts = self.sc_by_tmat.positions.reshape(nucs_in_sc, uc_natoms, 3) - self.uc.positions
-        assert numpy.allclose(shifts, shifts[:, :1, :], atol=1e-8), msg
-
-        # ...and that translation must be an integer combination of the unit-cell vectors.
-        shifts_frac = shifts[:, 0, :] @ numpy.linalg.inv(numpy.array(self.uc.cell))
-        assert numpy.allclose(shifts_frac, numpy.rint(shifts_frac), atol=1e-6), msg
 
     def set_kpts_in_unitcell(
         self,
@@ -419,8 +392,8 @@ class Unfold:
         valid = self.perm_sc2gen >= 0
         sc2gen_modes[valid] = sc_modes[self.perm_sc2gen[valid]]
 
-        # sc_by_tmat is cell-major (asserted in prepare), so the copies of each unit-cell
-        # atom are the leading axis and the overlap is a plain sum over it.
+        # sc_by_tmat is built cell-major (see prepare), so the copies of each unit-cell atom
+        # are the leading axis and the overlap is a plain sum over it.
         overlap = sc2gen_modes.reshape(self.nucs_in_sc, uc_natoms, 3, nbands).sum(axis=0)
         return (numpy.abs(overlap) ** 2).sum(axis=(0, 1)) / self.nucs_in_sc
 

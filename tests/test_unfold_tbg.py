@@ -34,7 +34,7 @@ def test_tbg_layer0_weight_conservation(data_dir):
 
     ret_pc_rot = calculate_pc_rotation_angle(atoms_gp_pc, tmat_l0)
     atoms_pc_rot = ret_pc_rot["atoms_pc_rot"]
-    sc_from_pc_rot = make_supercell(atoms_pc_rot, tmat_l0)
+    sc_from_pc_rot = make_supercell(atoms_pc_rot, tmat_l0, order="cell-major")
 
     layer0_indices = numpy.where(atoms_tbg_uc.positions[:, 2] < atoms_tbg_uc.positions[:, 2].mean())[0]
     atoms_layer0 = atoms_tbg_uc[layer0_indices]

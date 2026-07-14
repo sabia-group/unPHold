@@ -86,7 +86,7 @@ def main(output: Path, npoints: int = 21):
 
     # Build the ideal, defect-free 9x9x1 tiling, then match the real (relaxed, vacancy-bearing)
     # cell against it. perm is ideal-indexed with real-valued entries, -1 at the vacancy site.
-    sc_by_tmat = make_supercell(atoms_pc, TMAT, wrap=False)
+    sc_by_tmat = make_supercell(atoms_pc, TMAT, wrap=False, order="cell-major")
     match = match_atoms_with_vacancies(ideal=sc_by_tmat, real=sc_real, spatial_tolerance=0.5)
     assert match["fail_reason"] is None, match["fail_reason"]
     perm = match["perm_real2ideal"]
