@@ -26,13 +26,17 @@ VASP_TO_CM = VASP_TO_THZ * _pu.THzToCm
 
 
 class Unfold:
-    """Unfold phonon band structure from a Phonopy supercell to a primitive unitcell.
+    """Unfold phonon band structure from a Phonopy supercell (SC) to a unit cell (UC).
 
-    The spectral weight at primitive-cell k-point **k** for supercell band *n* is:
+    The UC is any cell that tiles the SC through an integer transformation matrix. In most
+    applications it is the primitive cell, but unfolding requires only commensurability.
 
-    $$w_{k,n} = \\frac{1}{N_{uc}} \\sum_i |\\langle \\phi^{uc}_{k,i} | \\Psi^{sc}_{k,n} \\rangle|^2$$
+    The spectral weight at UC k-point **k** for supercell band $\\nu$ is:
 
-    where $N_{uc}$ is the number of primitive cells in the supercell.
+    $$w_{k,\\nu} = \\frac{1}{N_{UC}} \\sum_i
+      |\\langle \\phi^{UC}_{k,i} | \\Psi^{SC}_{k,\\nu} \\rangle|^2$$
+
+    where $N_{UC}$ is the number of unit cells in the supercell.
 
     The correspondence between the ideal, unit-cell-generated supercell (``sc_by_tmat``,
     built from ``unitcell`` and ``transformation_matrix``) and the real supercell
@@ -108,7 +112,7 @@ class Unfold:
     ):
         """
         Args:
-            unitcell (aseAtoms): Primitive unitcell.
+            unitcell (aseAtoms): Unit cell to unfold onto.
             supercell (aseAtoms): Supercell from the phonon calculation
                 (retrieve via ``phonopy.unitcell`` after converting with ``atoms_ph2ase``).
             transformation_matrix (numpy.ndarray): Integer matrix mapping unitcell → supercell.
@@ -193,7 +197,7 @@ class Unfold:
         kpts: numpy.ndarray,
         format: str = "fractional",
     ):
-        """Set the k-points to evaluate, given in the primitive-cell BZ.
+        """Set the k-points to evaluate, given in the unit-cell BZ.
 
         Cartesian coordinates are without the 2π prefactor (i.e. in units of Å⁻¹).
 
