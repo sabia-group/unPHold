@@ -20,6 +20,8 @@ The [Theory](theory/unfolding.md) section explains the mathematical details.
   </figcaption>
 </figure>
 
+<!-- TODO: add LBM visualisation here. -->
+
 ## Scope
 
 - 3D and 2D supercells, moiré superlattices, defected structures

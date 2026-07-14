@@ -155,6 +155,7 @@ class Unfold:
             uc_BZ      = tmat.T @ sc_BZ
         """
         self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False)
+        self._assert_cell_major_order()
         if self.angle is not None:
             assert isinstance(self.angle, float)
             self.sc_by_tmat.rotate(self.angle, "z", rotate_cell=True)
@@ -185,6 +186,34 @@ class Unfold:
         self.sc_bz = numpy.array(self.sc.cell.reciprocal())
         assert numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2)
         assert numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2)
+
+    def _assert_cell_major_order(self):
+        """Check that ``sc_by_tmat`` lists atoms cell-major.
+
+        The projection relies on atom ``p * uc_natoms + kappa`` of ``sc_by_tmat`` being the
+        ``p``-th copy of unit-cell atom ``kappa``. This is ASE's ``make_supercell`` default
+        (``order="cell-major"``), but nothing in the array shapes would catch a change: a
+        different ordering would silently mis-assign copies and yield wrong weights rather
+        than raise. Verify it explicitly, before any rotation is applied.
+        """
+        uc_natoms = len(self.uc)
+        nucs_in_sc = len(self.sc_by_tmat) // uc_natoms
+        msg = (
+            "sc_by_tmat is not in cell-major order (atom p * uc_natoms + kappa must be the "
+            "p-th copy of unit-cell atom kappa); the unfolding projection assumes it."
+        )
+
+        numbers = self.sc_by_tmat.get_atomic_numbers().reshape(nucs_in_sc, uc_natoms)
+        assert numpy.all(numbers == self.uc.get_atomic_numbers()), msg
+
+        # Within one cell-major block, every atom must be displaced from its unit-cell
+        # counterpart by the same lattice translation R_p.
+        shifts = self.sc_by_tmat.positions.reshape(nucs_in_sc, uc_natoms, 3) - self.uc.positions
+        assert numpy.allclose(shifts, shifts[:, :1, :], atol=1e-8), msg
+
+        # ...and that translation must be an integer combination of the unit-cell vectors.
+        shifts_frac = shifts[:, 0, :] @ numpy.linalg.inv(numpy.array(self.uc.cell))
+        assert numpy.allclose(shifts_frac, numpy.rint(shifts_frac), atol=1e-6), msg
 
     def set_kpts_in_unitcell(
         self,
@@ -304,7 +333,36 @@ class Unfold:
         assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
         return float(data["factor"])
 
-    def _calculate_weights_one_kpt(self, kpt_idx: int) -> numpy.ndarray:
+    def _calculate_weights_one_kpt_v1(self, kpt_idx: int) -> numpy.ndarray:
+        """Spectral weights of every supercell band at one k-point (explicit-basis form).
+
+        Mathematically identical to ``_calculate_weights_one_kpt_v2``, but it builds the
+        projection basis as an explicit matrix instead of exploiting its structure. Kept as
+        a reference implementation to cross-check ``v2`` against.
+
+        It evaluates the same expression,
+
+        $$w_{k,\\nu} = \\frac{1}{N_{uc}} \\sum_i
+          \\big| \\langle \\phi^{uc}_{k,i} | \\Psi^{sc}_{k,\\nu} \\rangle \\big|^2$$
+
+        by materialising the unit-cell Cartesian displacement basis
+        $\\{\\phi^{uc}_{k,i}\\}$: ``uc_modes`` is the $3 N^{uc}_{atoms}$ identity, and
+        ``numpy.tile`` replicates it over the $N_{uc}$ cells, giving a
+        ``(3 * gen_natoms, 3 * uc_natoms)`` matrix whose column $i = (\\kappa, \\alpha)$ is
+        1 on every copy of atom $\\kappa$ along $\\alpha$ and 0 elsewhere. The ``einsum``
+        then contracts it with the supercell eigenvectors to form the overlaps.
+
+        Because that basis matrix is a tiled identity, contracting against it *is* summing
+        over the $N_{uc}$ copies of each atom, which is what ``v2`` does directly. So the
+        matrix is almost entirely zeros, it is k-independent yet rebuilt at every k-point,
+        and the ``.conj()`` is a no-op on a real basis. ``v2`` is preferred.
+
+        Args:
+            kpt_idx (int): Index into ``kpts_uc_frac``.
+
+        Returns:
+            numpy.ndarray: Weights, shape ``(sc_nbands,)``.
+        """
         uc_natoms = len(self.uc)
         sc_natoms = len(self.sc)
         gen_natoms = len(self.sc_by_tmat)
@@ -328,7 +386,47 @@ class Unfold:
 
         return weights / self.nucs_in_sc
 
-    def calculate_weights(self):
+    def _calculate_weights_one_kpt_v2(self, kpt_idx: int) -> numpy.ndarray:
+        """Spectral weights of every supercell band at one k-point.
+
+        Direct transcription of
+
+        $$w_{k,\\nu} = \\frac{1}{N_{uc}} \\sum_{\\kappa\\alpha}
+          \\Big| \\sum_p e^{sc}_{(p\\kappa)\\alpha,\\nu}(k) \\Big|^2$$
+
+        The unit-cell Cartesian displacement basis vector for (atom $\\kappa$, direction
+        $\\alpha$) is 1 on every copy of $\\kappa$ and 0 elsewhere, so the overlap with a
+        supercell eigenvector is just the sum over the $N_{uc}$ copies. No Bloch phase
+        appears: the supercell eigenvector is evaluated at the extended-zone point
+        $q' = k$, and phonopy's atomic gauge already carries the phase.
+
+        Args:
+            kpt_idx (int): Index into ``kpts_uc_frac``.
+
+        Returns:
+            numpy.ndarray: Weights, shape ``(sc_nbands,)``.
+        """
+        uc_natoms = len(self.uc)
+        gen_natoms = len(self.sc_by_tmat)
+
+        sc_modes = self.bs_sc_eigenvecs[kpt_idx]
+        nbands = sc_modes.shape[-1]
+        sc_modes = sc_modes.reshape(len(self.sc), 3, nbands)
+
+        # Gather sc atoms into generated-supercell order, zero-padding vacant sites
+        # (where perm_sc2gen == -1) so they contribute nothing to the projection.
+        sc2gen_modes = numpy.zeros((gen_natoms, 3, nbands), dtype=sc_modes.dtype)
+        valid = self.perm_sc2gen >= 0
+        sc2gen_modes[valid] = sc_modes[self.perm_sc2gen[valid]]
+
+        # sc_by_tmat is cell-major (asserted in prepare), so the copies of each unit-cell
+        # atom are the leading axis and the overlap is a plain sum over it.
+        overlap = sc2gen_modes.reshape(self.nucs_in_sc, uc_natoms, 3, nbands).sum(axis=0)
+        return (numpy.abs(overlap) ** 2).sum(axis=(0, 1)) / self.nucs_in_sc
+
+    _calculate_weights_one_kpt = _calculate_weights_one_kpt_v2
+
+    def calculate_weights(self, algo_version: int | None = None):
         """Calculate spectral weights for all k-points.
 
         Results are stored in ``self.weights``, shape ``(nkpts, sc_nbands)``.
@@ -338,7 +436,10 @@ class Unfold:
             tqdm(range(len(self.kpts_uc_frac)), desc="Projecting") if self.verbose else range(len(self.kpts_uc_frac))
         )
         for kpt_idx in iterator:
-            weights.append(self._calculate_weights_one_kpt(kpt_idx))
+            if algo_version == 1:
+                weights.append(self._calculate_weights_one_kpt_v1(kpt_idx))
+            else:
+                weights.append(self._calculate_weights_one_kpt_v2(kpt_idx))
         self.weights = numpy.array(weights)
 
     def _calculate_spectral_function_on_grid_one_kpt(
