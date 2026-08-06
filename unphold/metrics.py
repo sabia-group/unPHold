@@ -26,11 +26,11 @@ def compute_APR_from_phonopy(ph: Phonopy) -> list:
     """
     assert ph._band_structure is not None, "Band structure not computed."
     apr_list = []
-    for kseg_idx in range(len(ph._band_structure.get_qpoints())):
+    for kseg_idx in range(len(ph._band_structure.qpoints)):
         apr_list.append(
             compute_APR(
                 atoms=atoms_ph2ase(ph.unitcell),
-                ph_eigvecs=ph._band_structure.get_eigenvectors()[kseg_idx],
+                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
             )
         )
     return apr_list
@@ -102,11 +102,11 @@ def compute_L_from_phonopy(ph: Phonopy) -> list:
     assert ph._band_structure is not None, "Band structure not computed."
     L_list = []
     cell_reciprocal = atoms_ph2ase(ph.unitcell).cell.reciprocal()
-    for kseg_idx in range(len(ph._band_structure.get_qpoints())):
+    for kseg_idx in range(len(ph._band_structure.qpoints)):
         L_list.append(
             compute_L(
                 atoms=atoms_ph2ase(ph.unitcell),
-                ph_eigvecs=ph._band_structure.get_eigenvectors()[kseg_idx],
+                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
                 q=2 * numpy.pi * ph._band_structure.qpoints[kseg_idx] @ cell_reciprocal,
             )
         )
@@ -150,7 +150,7 @@ def compute_L(
     return lgt
 
 
-def compute_V(
+def compute_V_p1(
     atoms: aseAtoms,
     ph_eigvecs: numpy.ndarray,
 ) -> numpy.ndarray:
@@ -161,7 +161,7 @@ def compute_V(
 
     Note:
         This variant over-emphasises atoms with small displacements.
-        Prefer [`compute_V_p2`][unphold.metrics.compute_V_p2] in most cases.
+        Prefer [`compute_V`][unphold.metrics.compute_V] in most cases.
 
     Args:
         atoms (aseAtoms): Structure.
@@ -181,13 +181,13 @@ def compute_V(
     return vtcl
 
 
-def compute_V_p2(
+def compute_V(
     atoms: aseAtoms,
     ph_eigvecs: numpy.ndarray,
 ) -> numpy.ndarray:
     r"""Verticality of phonon modes (collective / p=2 norm).
 
-    Preferred over :func:`compute_V` because it does not over-weight atoms
+    Preferred over [`compute_V_p1`][unphold.metrics.compute_V_p1] because it does not over-weight atoms
     with small displacements.
 
     $$V_{q,n}^{p=2} =
