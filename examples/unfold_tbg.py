@@ -32,7 +32,7 @@ from phonopy.file_IO import read_force_constants_hdf5
 from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
 
 from unphold import Unfold
-from unphold.metrics import compute_APR, compute_V, compute_V_p2
+from unphold.metrics import compute_APR, compute_V, compute_V_p1
 from unphold.utils import (
     atoms_ph2ase,
     calculate_pc_rotation_angle,
@@ -251,14 +251,14 @@ def main(
 
     cand_eigvecs = unfold.bs_sc_eigenvecs[0:1, :, cand_idx]  # (1, natoms3, ncand)
     apr_cand = compute_APR(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)[0]
+    vp1_cand = compute_V_p1(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)[0]
     v_cand = compute_V(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)[0]
-    vp2_cand = compute_V_p2(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)[0]
 
     print(f"candidates in {FREQ_WINDOW} THz window with weight > {WEIGHT_MIN}: {len(cand_idx)}")
-    print(f"{'band':>5} {'freq (THz)':>12} {'APR':>8} {'V':>8} {'V_p2':>8} {'weight':>8}")
+    print(f"{'band':>5} {'freq (THz)':>12} {'APR':>8} {'V_p1':>8} {'V':>8} {'weight':>8}")
     for i, b in enumerate(cand_idx):
         print(
-            f"{b:5d} {gamma_freqs[b]:12.4f} {apr_cand[i]:8.4f} {v_cand[i]:8.4f} {vp2_cand[i]:8.4f} "
+            f"{b:5d} {gamma_freqs[b]:12.4f} {apr_cand[i]:8.4f} {vp1_cand[i]:8.4f} {v_cand[i]:8.4f} "
             f"{gamma_weights[b]:8.4f}"
         )
 

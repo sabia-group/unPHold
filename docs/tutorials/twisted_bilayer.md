@@ -155,21 +155,21 @@ Near Γ we also see the flat, non-dispersive LBM around 2.3 THz; we identify and
 ## Identifying and visualizing the breathing mode in TBG
 
 `unfold.calculate_sc_phonon` already diagonalizes the full moiré SC at every k-point on the path, including Γ, so `unfold.bs_sc_eigenvecs[0]` / `unfold.bs_sc_energies[0]` give the exact Γ-point eigenmodes directly, with no extra calculation needed.
-We scan them for modes that are optical (low [`compute_APR`][unphold.metrics.compute_APR]), strongly out-of-plane (high [`compute_V_p2`][unphold.metrics.compute_V_p2]), and carry non-negligible layer-0 weight, in the frequency window suggested by the plot above:
+We scan them for modes that are optical (low [`compute_APR`][unphold.metrics.compute_APR]), strongly out-of-plane (high [`compute_V`][unphold.metrics.compute_V]), and carry non-negligible layer-0 weight, in the frequency window suggested by the plot above (see the [graphene metrics tutorial](metrics.md) for an introduction to these metrics):
 
 ```python
 cand_mask = (gamma_freqs > 2.0) & (gamma_freqs < 2.6) & (gamma_weights > 0.01)
 apr = compute_APR(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)
-vp2 = compute_V_p2(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)
+v = compute_V(atoms=unfold.sc, ph_eigvecs=cand_eigvecs)
 ```
 
 For this TBG (twist angle 13.17°), this turns up a single, solid candidate:
 
-| band | freq (THz) | APR    | V_p2   | weight |
+| band | freq (THz) | APR    | V      | weight |
 |-----:|-----------:|-------:|-------:|-------:|
 |    5 |     2.2820 | 0.0002 | 1.0000 | 0.4995 |
 
-APR ≈ 0 confirms it is optical (the LBM belongs to the anti-symmetric ZO branch); V_p2 = 1 confirms the displacement is almost purely out-of-plane.
+APR ≈ 0 confirms it is optical (the LBM belongs to the anti-symmetric ZO branch); V = 1 confirms the displacement is almost purely out-of-plane.
 The weight is ≈ 0.5 because a purely out-of-plane, unit-normalized eigenvector splits its weight between the two layers in proportion to how many atoms each one has, and here half the atoms are in the bottom layer.
 
 [`plot_layer_mode_2d`][unphold.visualize.plot_layer_mode_2d] visualizes the real-space displacement of this LBM:
@@ -194,7 +194,7 @@ The same workflow applies unchanged to a larger, more strongly coupled moiré ce
 
 The same 2.0–2.6 THz candidate search now turns up two modes instead of one:
 
-| band | freq (THz) | APR    | V_p2   | weight |
+| band | freq (THz) | APR    | V      | weight |
 |-----:|-----------:|-------:|-------:|-------:|
 |   17 |     2.2822 | 0.0000 | 0.9992 | 0.4197 |
 |   24 |     2.3899 | 0.0000 | 0.9999 | 0.0799 |

@@ -181,6 +181,27 @@ def compute_V_p1(
     return vtcl
 
 
+def compute_V_from_phonopy(ph: Phonopy) -> list:
+    """Compute verticality (p=2 form) for all k-path segments from a Phonopy object.
+
+    Args:
+        ph (Phonopy): Phonopy object with computed band structure.
+
+    Returns:
+        list[numpy.ndarray]: V per segment, each of shape ``(nqpoints, nbands)``.
+    """
+    assert ph._band_structure is not None, "Band structure not computed."
+    V_list = []
+    for kseg_idx in range(len(ph._band_structure.qpoints)):
+        V_list.append(
+            compute_V(
+                atoms=atoms_ph2ase(ph.unitcell),
+                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
+            )
+        )
+    return V_list
+
+
 def compute_V(
     atoms: aseAtoms,
     ph_eigvecs: numpy.ndarray,

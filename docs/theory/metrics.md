@@ -2,7 +2,7 @@
 
 Beyond the unfolding weight, unPHold provides multiple scalar metrics that characterize the eigenvector of each phonon mode.
 They are computed from the supercell eigenvectors and are used.
-A hands-on tutorial computing and plotting all three metrics on monolayer graphene is available at [Characterizing graphene phonon mode](../tutorials/metrics.md).
+A hands-on tutorial computing and plotting all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
 
 As a reminder for notations: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.
 
@@ -31,7 +31,7 @@ Longitudinality[^legenstein] measures how much a mode's displacement aligns with
 
 \[
 L_{\mathbf{q},n} =
-\sfrac{1}{N} \left| \sum_{\kappa=1}^{N} \hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n} \right|
+\frac{1}{N} \left| \sum_{\kappa=1}^{N} \hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n} \right|
 \]
 
 \(L=1\) marks a purely longitudinal mode and \(L=0\) a purely transverse one.

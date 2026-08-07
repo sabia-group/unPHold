@@ -9,11 +9,12 @@ nav:
   - Installation: installation.md
   - Theory:
       - Unfolding theory: theory/unfolding.md
-      - Mode character metrics: theory/metrics.md
+      - Metrics for mode characterization: theory/metrics.md
   - Tutorials:
       - "Si: 3D bulk unfolding": tutorials/si.md
       - "Twisted bilayer graphene: 2D layer unfolding": tutorials/twisted_bilayer.md
       - "Defect materials": tutorials/defect.md
+      - "Graphene phonon mode characterization": tutorials/metrics.md
   - API Reference:
       - Unfold: api/unfold.md
       - Metrics: api/metrics.md
