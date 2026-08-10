@@ -22,7 +22,7 @@ The acoustic participation ratio[^kamencek] measures how in-phase the atomic dis
 
 where \(m_\kappa\) are the atomic masses and the sum runs over unique atom pairs.
 \(\mathrm{APR}=1\) indicates an acoustic-like mode (atoms moving in phase), while \(\mathrm{APR}\to 0\) indicates an optic-like mode.
-Computed by `unphold.metrics.compute_APR`.
+Computed by [`unphold.metrics.compute_APR()`][unphold.metrics.compute_APR].
 
 ## Longitudinality (L)
 
@@ -35,7 +35,7 @@ L_{\mathbf{q},n} =
 \]
 
 \(L=1\) marks a purely longitudinal mode and \(L=0\) a purely transverse one.
-Computed by `unphold.metrics.compute_L`.
+Computed by [`unphold.metrics.compute_L()`][unphold.metrics.compute_L].
 
 ## Verticality (V)
 
@@ -49,7 +49,7 @@ V^{p=2}_{\mathbf{q},n} =
 
 with \(V=1\) purely out-of-plane, \(V=0\) purely in-plane, and \(V=0.5\) as the threshold (for example a single atom vibrating 45 degrees from the z-axis).
 The complement \((1-V)\) measures the in-plane character of the mode.
-Computed by `unphold.metrics.compute_V_p2`.
+Computed by [`unphold.metrics.compute_V()`][unphold.metrics.compute_V].
 
 [^kamencek]: T. Kamencek, *Understanding Phonon-Related Properties in Metal-Organic Frameworks for Controlling Their Mechanical and Thermal Characteristics*, PhD thesis, Technische Universität Graz (2022).
 [^legenstein]: L. Legenstein, L. Reicht, T. Kamencek, and E. Zojer, *Anisotropic Phonon Bands in H-Bonded Molecular Crystals: The Instructive Case of α-Quinacridone*, ACS Mater. Au **3**, 371 (2023).

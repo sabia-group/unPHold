@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "unPHold"
 version = "0.1.0"
-description = "Phonon band unfolding for supercells: relaxation-aware, layer-resolved, and MLIP-compatible"
+description = "Phonon band unfolding from supercells to primitive cells, for relaxed, defective, and moiré structures"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

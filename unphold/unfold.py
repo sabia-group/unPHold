@@ -66,15 +66,7 @@ class Unfold:
     For a supercell with vacancies, mark the corresponding ideal sites in
     ``perm_sc2gen`` with ``-1``. The projector is built by zero-padding: an ideal site
     with no real counterpart contributes nothing to the inner product, rather than being
-    excluded from the basis. One consequence is that the captured spectral weight is
-    then no longer exactly conserved - for $n_v$ point vacancies,
-
-    $$\\sum_n w_{k,n} = 3\\,N_{atoms}^{uc} - \\frac{3 n_v}{N_{uc}}$$
-
-    instead of $3\\,N_{atoms}^{uc}$ exactly, with the deficit vanishing as the supercell
-    size $N_{uc}$ grows (dilute-defect limit). This is expected, not a bug: the missing
-    atom's phonon character is genuinely absent from the diagonalised system, so it
-    cannot be captured by this projector.
+    excluded from the basis.
 
     Example::
 
@@ -119,7 +111,7 @@ class Unfold:
             transformation_matrix_ph (numpy.ndarray, optional): Phonopy-internal transformation
                 matrix (not required by the current algorithm).
             angle (float, optional): Rotation angle in degrees to align the generated supercell
-                with the Phonopy supercell (moiré systems).
+                with the Phonopy supercell (moire systems).
             spatial_tolerance (float): Atom-matching tolerance in Angstrom.
             perm_sc2gen (numpy.ndarray, optional): Index array of shape
                 ``(nucs_in_sc * len(unitcell),)``, one entry per atom of the ideal
@@ -199,7 +191,7 @@ class Unfold:
     ):
         """Set the k-points to evaluate, given in the unit-cell BZ.
 
-        Cartesian coordinates are without the 2π prefactor (i.e. in units of Å⁻¹).
+        Cartesian coordinates are without the 2π prefactor (i.e. in units of inversed Angstrom).
 
         Args:
             kpts (numpy.ndarray): K-points, shape ``(nkpts, 3)``.

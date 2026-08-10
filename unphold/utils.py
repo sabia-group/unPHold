@@ -546,10 +546,6 @@ class RelaxBySpring:
     All operations are vectorized and handle periodic boundary conditions in all three
     directions using fractional coordinates.
 
-    Warning:
-        This class was written by an LLM and should be tested more carefully before being
-        relied on in production.
-
     Args:
         atoms (aseAtoms): The atomic structure to be relaxed. Must have periodic boundary
             conditions.
