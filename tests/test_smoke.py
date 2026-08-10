@@ -10,7 +10,7 @@ def test_import():
 
 def test_public_api():
     from unphold import Unfold
-    from unphold.metrics import compute_APR, compute_L, compute_V, compute_V_p2
+    from unphold.metrics import compute_APR, compute_L, compute_V, compute_V_p1
     from unphold.utils import band_expansion, concatenate_bands, gaussian_function
 
     assert callable(Unfold)

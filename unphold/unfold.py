@@ -26,23 +26,27 @@ VASP_TO_CM = VASP_TO_THZ * _pu.THzToCm
 
 
 class Unfold:
-    """Unfold phonon band structure from a Phonopy supercell to a primitive unitcell.
+    """Unfold phonon band structure from a Phonopy supercell (SC) to a unit cell (UC).
 
-    The spectral weight at primitive-cell k-point **k** for supercell band *n* is:
+    The UC is any cell that tiles the SC through an integer transformation matrix. In most
+    applications it is the primitive cell, but unfolding requires only commensurability.
 
-    $$w_{k,n} = \\frac{1}{N_{uc}} \\sum_i |\\langle \\phi^{uc}_{k,i} | \\Psi^{sc}_{k,n} \\rangle|^2$$
+    The spectral weight at UC k-point **k** for supercell band $\\nu$ is:
 
-    where $N_{uc}$ is the number of primitive cells in the supercell.
+    $$w_{k,\\nu} = \\frac{1}{N_{UC}} \\sum_i
+      |\\langle \\phi^{UC}_{k,i} | \\Psi^{SC}_{k,\\nu} \\rangle|^2$$
 
-    The correspondence between the ideal, Phonopy-generated supercell (``sc_by_mat``,
+    where $N_{UC}$ is the number of unit cells in the supercell.
+
+    The correspondence between the ideal, unit-cell-generated supercell (``sc_by_tmat``,
     built from ``unitcell`` and ``transformation_matrix``) and the real supercell
-    (``supercell``, whatever Phonopy actually diagonalised) is given by a single array,
-    ``perm_sc2gen``: for each atom in ``sc_by_mat``, the index of the corresponding atom
+    (``supercell``, which Phonopy actually diagonalised) is given by a single array,
+    ``perm_sc2gen``: for each atom in ``sc_by_tmat``, the index of the corresponding atom
     in ``supercell``, or ``-1`` if there is none.
 
     This one array covers what used to be three separate mechanisms:
 
-    - **Atom reordering**: ``supercell`` and ``sc_by_mat`` list the same atoms in a
+    - **Atom reordering**: ``supercell`` and ``sc_by_tmat`` list the same atoms in a
       different order (the common case) - ``perm_sc2gen`` just encodes the permutation.
     - **Projecting a subset of atoms** (e.g. one layer of a bilayer): pass ``unitcell``/
       ``transformation_matrix`` for that one layer, and let ``perm_sc2gen`` map its ideal
@@ -53,7 +57,7 @@ class Unfold:
       raising an error. See [Handling defects](#handling-defects) below.
 
     If ``perm_sc2gen`` is not supplied, it is computed automatically by matching
-    ``supercell`` and ``sc_by_mat`` position-by-position (see
+    ``supercell`` and ``sc_by_tmat`` position-by-position (see
     [`match_two_atoms`][unphold.utils.match_two_atoms]); this only works when the two
     have identical atom counts and no vacancies.
 
@@ -92,8 +96,7 @@ class Unfold:
         unfold.set_kpts_in_unitcell(kpts, format="fractional")
         unfold.calculate_sc_phonon(ph.dynamical_matrix, "meV")
         unfold.calculate_weights()
-        grid, sigma = unfold.calculate_spectral_function_on_grid()
-        # unfold.spectral_function_on_grid has shape (nkpts, ngrid)
+        spectral, grid, sigma = unfold.calculate_spectral_function_on_grid()
     """
 
     def __init__(
@@ -109,7 +112,7 @@ class Unfold:
     ):
         """
         Args:
-            unitcell (aseAtoms): Primitive unitcell.
+            unitcell (aseAtoms): Unit cell to unfold onto.
             supercell (aseAtoms): Supercell from the phonon calculation
                 (retrieve via ``phonopy.unitcell`` after converting with ``atoms_ph2ase``).
             transformation_matrix (numpy.ndarray): Integer matrix mapping unitcell → supercell.
@@ -120,11 +123,11 @@ class Unfold:
             spatial_tolerance (float): Atom-matching tolerance in Angstrom.
             perm_sc2gen (numpy.ndarray, optional): Index array of shape
                 ``(nucs_in_sc * len(unitcell),)``, one entry per atom of the ideal
-                Phonopy-generated supercell (``sc_by_mat``), giving the index of the
+                Phonopy-generated supercell (``sc_by_tmat``), giving the index of the
                 corresponding atom in ``supercell``, or ``-1`` if there is none (vacancy,
                 or an atom outside the region being projected - e.g. the other layer of
                 a bilayer). If ``None``, computed automatically by matching ``supercell``
-                to ``sc_by_mat`` position-by-position (requires equal atom counts and no
+                to ``sc_by_tmat`` position-by-position (requires equal atom counts and no
                 vacancies).
             verbose (bool): Show progress bars.
         """
@@ -133,7 +136,7 @@ class Unfold:
         self.tmat = transformation_matrix
         self.tmat_ph = transformation_matrix_ph
         self.angle = angle
-        self.sc_by_mat = None
+        self.sc_by_tmat = None
         self.perm_sc2gen = perm_sc2gen
         self.spatial_tolerance = spatial_tolerance
         self.verbose = verbose
@@ -155,16 +158,18 @@ class Unfold:
             sc_lattice = tmat @ uc_lattice
             uc_BZ      = tmat.T @ sc_BZ
         """
-        self.sc_by_mat = make_supercell(self.uc, self.tmat, wrap=False)
+        # order="cell-major" is load-bearing: the projection in _calculate_weights_one_kpt_v2
+        # assumes atom p * uc_natoms + kappa is the p-th copy of unit-cell atom kappa.
+        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False, order="cell-major")
         if self.angle is not None:
             assert isinstance(self.angle, float)
-            self.sc_by_mat.rotate(self.angle, "z", rotate_cell=True)
+            self.sc_by_tmat.rotate(self.angle, "z", rotate_cell=True)
 
         if self.perm_sc2gen is not None:
             assert isinstance(self.perm_sc2gen, numpy.ndarray)
-            assert self.perm_sc2gen.shape == (len(self.sc_by_mat),), (
-                f"perm_sc2gen should have shape ({len(self.sc_by_mat)},) "
-                f"(one entry per atom of sc_by_mat), got {self.perm_sc2gen.shape}"
+            assert self.perm_sc2gen.shape == (len(self.sc_by_tmat),), (
+                f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
+                f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
             )
             _valid = self.perm_sc2gen >= 0
             assert numpy.all(self.perm_sc2gen[_valid] < len(self.sc)), "perm_sc2gen has out-of-range entries"
@@ -173,12 +178,12 @@ class Unfold:
             )
         else:
             print("WARNING: it is strongly recommended to provide perm_sc2gen")
-            _match = match_two_atoms(self.sc, self.sc_by_mat, spatial_tolerance=self.spatial_tolerance)
+            _match = match_two_atoms(self.sc, self.sc_by_tmat, spatial_tolerance=self.spatial_tolerance)
             if _match["fail_reason"] is not None:
                 raise ValueError(_match["fail_reason"])
             self.perm_sc2gen = _match["atoms_indices_a2b"]
 
-        self.nucs_in_sc = len(self.sc_by_mat) // len(self.uc)
+        self.nucs_in_sc = len(self.sc_by_tmat) // len(self.uc)
 
         self.uc_la = numpy.array(self.uc.cell)
         self.uc_bz = numpy.array(self.uc.cell.reciprocal())
@@ -192,7 +197,7 @@ class Unfold:
         kpts: numpy.ndarray,
         format: str = "fractional",
     ):
-        """Set the k-points to evaluate, given in the primitive-cell BZ.
+        """Set the k-points to evaluate, given in the unit-cell BZ.
 
         Cartesian coordinates are without the 2π prefactor (i.e. in units of Å⁻¹).
 
@@ -305,10 +310,39 @@ class Unfold:
         assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
         return float(data["factor"])
 
-    def _calculate_weights_one_kpt(self, kpt_idx: int) -> numpy.ndarray:
+    def _calculate_weights_one_kpt_v1(self, kpt_idx: int) -> numpy.ndarray:
+        """Spectral weights of every supercell band at one k-point (explicit-basis form).
+
+        Mathematically identical to ``_calculate_weights_one_kpt_v2``, but it builds the
+        projection basis as an explicit matrix instead of exploiting its structure. Kept as
+        a reference implementation to cross-check ``v2`` against.
+
+        It evaluates the same expression,
+
+        $$w_{k,\\nu} = \\frac{1}{N_{uc}} \\sum_i
+          \\big| \\langle \\phi^{uc}_{k,i} | \\Psi^{sc}_{k,\\nu} \\rangle \\big|^2$$
+
+        by materialising the unit-cell Cartesian displacement basis
+        $\\{\\phi^{uc}_{k,i}\\}$: ``uc_modes`` is the $3 N^{uc}_{atoms}$ identity, and
+        ``numpy.tile`` replicates it over the $N_{uc}$ cells, giving a
+        ``(3 * gen_natoms, 3 * uc_natoms)`` matrix whose column $i = (\\kappa, \\alpha)$ is
+        1 on every copy of atom $\\kappa$ along $\\alpha$ and 0 elsewhere. The ``einsum``
+        then contracts it with the supercell eigenvectors to form the overlaps.
+
+        Because that basis matrix is a tiled identity, contracting against it *is* summing
+        over the $N_{uc}$ copies of each atom, which is what ``v2`` does directly. So the
+        matrix is almost entirely zeros, it is k-independent yet rebuilt at every k-point,
+        and the ``.conj()`` is a no-op on a real basis. ``v2`` is preferred.
+
+        Args:
+            kpt_idx (int): Index into ``kpts_uc_frac``.
+
+        Returns:
+            numpy.ndarray: Weights, shape ``(sc_nbands,)``.
+        """
         uc_natoms = len(self.uc)
         sc_natoms = len(self.sc)
-        gen_natoms = len(self.sc_by_mat)
+        gen_natoms = len(self.sc_by_tmat)
 
         uc_modes = numpy.diag(numpy.ones(3 * uc_natoms)).reshape(uc_natoms, 3, 3 * uc_natoms)
         uc2gen_modes = numpy.tile(uc_modes, (self.nucs_in_sc, 1, 1)).reshape(3 * gen_natoms, 3 * uc_natoms)
@@ -329,7 +363,47 @@ class Unfold:
 
         return weights / self.nucs_in_sc
 
-    def calculate_weights(self):
+    def _calculate_weights_one_kpt_v2(self, kpt_idx: int) -> numpy.ndarray:
+        """Spectral weights of every supercell band at one k-point.
+
+        Direct transcription of
+
+        $$w_{k,\\nu} = \\frac{1}{N_{uc}} \\sum_{\\kappa\\alpha}
+          \\Big| \\sum_p e^{sc}_{(p\\kappa)\\alpha,\\nu}(k) \\Big|^2$$
+
+        The unit-cell Cartesian displacement basis vector for (atom $\\kappa$, direction
+        $\\alpha$) is 1 on every copy of $\\kappa$ and 0 elsewhere, so the overlap with a
+        supercell eigenvector is just the sum over the $N_{uc}$ copies. No Bloch phase
+        appears: the supercell eigenvector is evaluated at the extended-zone point
+        $q' = k$, and phonopy's atomic gauge already carries the phase.
+
+        Args:
+            kpt_idx (int): Index into ``kpts_uc_frac``.
+
+        Returns:
+            numpy.ndarray: Weights, shape ``(sc_nbands,)``.
+        """
+        uc_natoms = len(self.uc)
+        gen_natoms = len(self.sc_by_tmat)
+
+        sc_modes = self.bs_sc_eigenvecs[kpt_idx]
+        nbands = sc_modes.shape[-1]
+        sc_modes = sc_modes.reshape(len(self.sc), 3, nbands)
+
+        # Gather sc atoms into generated-supercell order, zero-padding vacant sites
+        # (where perm_sc2gen == -1) so they contribute nothing to the projection.
+        sc2gen_modes = numpy.zeros((gen_natoms, 3, nbands), dtype=sc_modes.dtype)
+        valid = self.perm_sc2gen >= 0
+        sc2gen_modes[valid] = sc_modes[self.perm_sc2gen[valid]]
+
+        # sc_by_tmat is built cell-major (see prepare), so the copies of each unit-cell atom
+        # are the leading axis and the overlap is a plain sum over it.
+        overlap = sc2gen_modes.reshape(self.nucs_in_sc, uc_natoms, 3, nbands).sum(axis=0)
+        return (numpy.abs(overlap) ** 2).sum(axis=(0, 1)) / self.nucs_in_sc
+
+    _calculate_weights_one_kpt = _calculate_weights_one_kpt_v2
+
+    def calculate_weights(self, algo_version: int | None = None):
         """Calculate spectral weights for all k-points.
 
         Results are stored in ``self.weights``, shape ``(nkpts, sc_nbands)``.
@@ -339,7 +413,10 @@ class Unfold:
             tqdm(range(len(self.kpts_uc_frac)), desc="Projecting") if self.verbose else range(len(self.kpts_uc_frac))
         )
         for kpt_idx in iterator:
-            weights.append(self._calculate_weights_one_kpt(kpt_idx))
+            if algo_version == 1:
+                weights.append(self._calculate_weights_one_kpt_v1(kpt_idx))
+            else:
+                weights.append(self._calculate_weights_one_kpt_v2(kpt_idx))
         self.weights = numpy.array(weights)
 
     def _calculate_spectral_function_on_grid_one_kpt(
@@ -357,7 +434,7 @@ class Unfold:
         self,
         grid: numpy.ndarray | None = None,
         sigma: float | None = None,
-    ) -> tuple[numpy.ndarray, float]:
+    ) -> tuple[numpy.ndarray, numpy.ndarray, float]:
         """Project weighted supercell bands onto an energy grid.
 
         If ``grid`` and ``sigma`` are None, sensible defaults are chosen automatically
@@ -368,9 +445,9 @@ class Unfold:
             sigma (float, optional): Gaussian broadening width (same units as energies).
 
         Returns:
-            tuple: ``(grid, sigma)`` the grid and broadening used.
-
-        After calling, ``self.spectral_function_on_grid`` has shape ``(nkpts, ngrid)``.
+            tuple: ``(spectral_function, grid, sigma)`` where ``spectral_function``
+                has shape ``(nkpts, ngrid)``, and ``grid`` and ``sigma`` are the
+                energy grid and broadening used. Nothing is stored on ``self``.
         """
         if grid is None and sigma is None:
             _div = (self.bs_sc_energies.max() - self.bs_sc_energies.min()) / 2000
@@ -393,8 +470,7 @@ class Unfold:
         spectral_function_on_grid = []
         for kpt_idx in iterator:
             spectral_function_on_grid.append(self._calculate_spectral_function_on_grid_one_kpt(kpt_idx, grid, sigma))
-        self.spectral_function_on_grid = numpy.stack(spectral_function_on_grid, axis=0)
-        return grid, sigma
+        return numpy.stack(spectral_function_on_grid, axis=0), grid, sigma
 
     def save(self, fpath: str):
         """Serialise the Unfold object to disk (pickle).
