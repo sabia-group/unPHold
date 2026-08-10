@@ -75,7 +75,7 @@ def test_verticality_out_of_plane_and_in_plane():
         [[1, 0, 1], [1, 0, 1]],  # half in-plane, half out-of-plane
     )
     vp2 = compute_V(atoms=_two_atoms(), ph_eigvecs=eigvecs)
-    assert numpy.allclose(vp2, [[1.0, 0.0, 1/2]])
+    assert numpy.allclose(vp2, [[1.0, 0.0, 1 / 2]])
 
 
 def test_verticality_p1_out_of_plane_and_in_plane():
