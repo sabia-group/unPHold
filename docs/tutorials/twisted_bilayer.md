@@ -135,7 +135,7 @@ The k-path setup and the `calculate_*` sequence are identical to the [Si tutoria
 unfold.set_kpts_in_unitcell(kpts_uc_flat, format="fractional")
 unfold.calculate_sc_phonon(dyn_sc=ph_tbg.dynamical_matrix, factor="thz")
 unfold.calculate_weights()
-unfold.calculate_spectral_function_on_grid()
+spectral, grid, sigma = unfold.calculate_spectral_function_on_grid()
 ```
 
 We plot the broadened spectral function from the unfolding weights against the BLG reference bands:

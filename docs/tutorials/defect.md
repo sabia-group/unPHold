@@ -90,7 +90,7 @@ A(\mathbf{k}, \omega) = \sum_n w_{\mathbf{k},n}\, g(\omega - \omega_{\mathbf{k},
 $$
 
 ```python
-unfold.calculate_spectral_function_on_grid(grid=np.arange(-5.0, 55.0, 0.05), sigma=0.15)
+spectral, grid, sigma = unfold.calculate_spectral_function_on_grid()
 ```
 
 Compared to the unfolded TBG spectral function, the vacancy cell shows many more band breaks and extra lines.

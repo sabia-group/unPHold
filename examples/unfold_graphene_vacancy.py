@@ -124,8 +124,7 @@ def main(output: Path, npoints: int = 21):
     print(f"Weight sum actual:   {weight_sums.mean():.5f}")
     print(f"Max |deviation| over k-points: {np.abs(weight_sums - weight_sum_expected).max():.2e}")
 
-    grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
-    spectral = unfold.spectral_function_on_grid  # (nkpts, ngrid)
+    spectral, grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
 
     # Pristine primitive-cell bands, for the physics reference overlay.
     ph_pc.run_band_structure(kpts_uc, path_connections=connections)

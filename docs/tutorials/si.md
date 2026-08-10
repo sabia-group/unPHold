@@ -74,10 +74,10 @@ unfold.calculate_weights()
 To validate the unfolding weights, we can apply a Gaussian expansion to the unfolded weights along the frequency axis and plot the unfolded spectral function:
 
 ```python
-unfold.calculate_spectral_function_on_grid()
+spectral, grid, sigma = unfold.calculate_spectral_function_on_grid()
 ```
 
-The unfolded spectral function `Unfold.spectral_function_on_grid` recovers the primitive-cell dispersion:
+The unfolded spectral function `spectral` (shape `(nkpts, ngrid)`) recovers the primitive-cell dispersion:
 
 <figure markdown>
   ![Unfolded vs UC bands](../assets/si_unfolded_vs_uc.png){ width=300 }

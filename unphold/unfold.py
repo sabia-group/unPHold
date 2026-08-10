@@ -96,7 +96,7 @@ class Unfold:
         unfold.set_kpts_in_unitcell(kpts, format="fractional")
         unfold.calculate_sc_phonon(ph.dynamical_matrix, "meV")
         unfold.calculate_weights()
-        grid, sigma = unfold.calculate_spectral_function_on_grid()
+        spectral, grid, sigma = unfold.calculate_spectral_function_on_grid()
     """
 
     def __init__(
@@ -434,7 +434,7 @@ class Unfold:
         self,
         grid: numpy.ndarray | None = None,
         sigma: float | None = None,
-    ) -> tuple[numpy.ndarray, float]:
+    ) -> tuple[numpy.ndarray, numpy.ndarray, float]:
         """Project weighted supercell bands onto an energy grid.
 
         If ``grid`` and ``sigma`` are None, sensible defaults are chosen automatically
@@ -445,9 +445,9 @@ class Unfold:
             sigma (float, optional): Gaussian broadening width (same units as energies).
 
         Returns:
-            tuple: ``(grid, sigma)`` the grid and broadening used.
-
-        After calling, ``self.spectral_function_on_grid`` has shape ``(nkpts, ngrid)``.
+            tuple: ``(spectral_function, grid, sigma)`` where ``spectral_function``
+                has shape ``(nkpts, ngrid)``, and ``grid`` and ``sigma`` are the
+                energy grid and broadening used. Nothing is stored on ``self``.
         """
         if grid is None and sigma is None:
             _div = (self.bs_sc_energies.max() - self.bs_sc_energies.min()) / 2000
@@ -470,8 +470,7 @@ class Unfold:
         spectral_function_on_grid = []
         for kpt_idx in iterator:
             spectral_function_on_grid.append(self._calculate_spectral_function_on_grid_one_kpt(kpt_idx, grid, sigma))
-        self.spectral_function_on_grid = numpy.stack(spectral_function_on_grid, axis=0)
-        return grid, sigma
+        return numpy.stack(spectral_function_on_grid, axis=0), grid, sigma
 
     def save(self, fpath: str):
         """Serialise the Unfold object to disk (pickle).

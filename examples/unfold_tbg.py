@@ -209,8 +209,7 @@ def main(
     plt.close(fig)
 
     # --- Figure: unfolded spectral function vs BLG reference bands, full k-path ---
-    grid, _ = unfold.calculate_spectral_function_on_grid()
-    spectral = unfold.spectral_function_on_grid  # (nkpts, ngrid)
+    spectral, grid, _ = unfold.calculate_spectral_function_on_grid()
     norm = Normalize(vmin=0, vmax=numpy.percentile(spectral, 99.5))
 
     fig, ax = plt.subplots(figsize=(6, 4.5))

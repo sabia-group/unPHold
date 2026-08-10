@@ -90,8 +90,7 @@ def test_si_spectral_matches_uc(data_dir):
     unfold.set_kpts_in_unitcell(kpts_flat, format="fractional")
     unfold.calculate_sc_phonon(dyn_sc=ph_sc.dynamical_matrix, factor="thz")
     unfold.calculate_weights()
-    grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
-    spectral_unfolded = unfold.spectral_function_on_grid  # (nkpts, ngrid)
+    spectral_unfolded, grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
 
     # Build reference UC spectral function (weight=1 per mode)
     uc_freqs_flat = numpy.concatenate(
