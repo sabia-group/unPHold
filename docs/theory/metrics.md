@@ -1,7 +1,7 @@
 # Metrics for mode characterization
 
-Beyond the unfolding weight, unPHold provides multiple scalar metrics that characterize the eigenvector of each phonon mode.
-They are computed from the supercell eigenvectors and are used.
+Beyond the unfolding weight, unPHold provides three scalar metrics that characterize the eigenvector of each phonon mode.
+They are computed directly from the phonon eigenvectors, while it is also possible to compute them from the unfolded modes.
 A hands-on tutorial computing and plotting all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
 
 As a reminder for notations: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.

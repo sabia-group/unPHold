@@ -9,7 +9,7 @@ In this section, we compute the three mode character metrics (see [Metrics for m
 </figure>
 
 The full script is available at [`examples/metrics_graphene.py`](https://github.com/sabia-group/unPHold/blob/main/examples/metrics_graphene.py).
-The forces are obtained from model [MACE-OMAT-0](https://github.com/ACEsuit/mace-foundations), and data is available at [`tests/data/graphene`](https://github.com/sabia-group/unPHold/blob/main/tests/data/graphene).
+The forces are obtained from the model [MACE-OMAT-0](https://github.com/ACEsuit/mace-foundations), and data is available at [`tests/data/graphene`](https://github.com/sabia-group/unPHold/blob/main/tests/data/graphene).
 The following code snippets are extracted from the full script.
 
 Note that no unfolding is involved here: the metrics are functions of the phonon eigenvectors of any cell, so we work directly with the 2-atom primitive cell.
@@ -27,7 +27,7 @@ bs = ph._band_structure
 ```
 
 We use the k-path `Γ-M-K-Γ` in the hexagonal Brillouin zone (BZ).
-All metric functions accept eigenvectors of shape `(nqpoints, natoms*3, nbands)` and return values between 0 and 1 for each mode and shape `(nqpoints, nbands)`.
+All metric functions accept eigenvectors of shape `(nqpoints, natoms*3, nbands)` and return values between 0 and 1 for each mode, in an array of shape `(nqpoints, nbands)`.
 The `*_from_phonopy` convenience wrappers loop over the k-path segments of a `Phonopy` object and return one such array per segment:
 
 ```python

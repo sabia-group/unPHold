@@ -6,7 +6,7 @@ Unfolding reverses this: it recovers the effective unit-cell band structure from
 Throughout, the UC is any cell that tiles the SC through an integer transformation matrix \(\mathbf{T}\).
 In most applications it is the primitive cell, but unfolding requires only commensurability, not primitivity.
 
-## Phonons spectrum with harmonic approximation
+## Phonon spectrum with harmonic approximation
 
 In the harmonic approximation, the second-order force constants \(C\) define the dynamical matrix \(D(\mathbf{k})\), whose eigenproblem
 
@@ -18,12 +18,12 @@ In the harmonic approximation, the second-order force constants \(C\) define the
 gives the phonon frequencies \(\omega_{\mathbf{k}\nu}\) and eigenvectors \(e_{\kappa\alpha,\nu}(\mathbf{k})\) for the mode \(\ket{\mathbf{k},\nu}\),
 where \(\kappa\) indexes atoms in the cell, \(\alpha\) a Cartesian direction, and \(\nu\) the band.
 
-`unPHold` reads harmonic phonons directly from [`phonopy`](https://phonopy.github.io/phonopy/), so the phonon calculation, as a well-established technique, is conducted by `phonopy`.
+`unPHold` reads harmonic phonons directly from [`phonopy`](https://phonopy.github.io/phonopy/); the phonon calculation itself is carried out by `phonopy`.
 
 ## Supercell and k-point folding
 
 The SC is a periodic repetition of the UC, so its Brillouin zone (BZ) is smaller than that of the UC.
-Transformation matrix \(\mathbf{T}\) is required to create the SC from the UC:
+The transformation matrix \(\mathbf{T}\) creates the SC from the UC:
 
 \[
 \mathbf{T}
@@ -56,7 +56,7 @@ Correspondingly, the reciprocal lattice vectors are related by
 \]
 
 Since the unit cell and the supercell share the same reciprocal space (\(\mathbf{k}^\text{UC} = \mathbf{k}^\text{SC}\)), a unit-cell k-point \(\mathbf{k}\) maps to its supercell counterpart through folding.
-It is worth noting that `phonopy` uses fractional coordinates for k-points, and the fractional coordinates of the supercell k-point are related to those of the unit cell by
+`phonopy` uses fractional coordinates for k-points, and the fractional coordinates of the supercell k-point are related to those of the unit cell by
 
 \[
 \tilde{\mathbf{k}}^\text{SC} = \tilde{\mathbf{k}}^\text{UC} \, \mathbf{T}^\mathsf{T}
@@ -81,7 +81,7 @@ Unfolding reverses this, taking the supercell modes from the SC BZ \(\mathbf{K}\
   ![BZ folding illustration](../assets/docs_illustration_bz_folding.png){ width=340 }
   <figcaption>
   BZ folding for a 2x2 supercell in 2D.
-  <span style="color:#5a8fd0">Unit-cell BZ</span> is pad by 2x2 <span style="color:#c0392b">supercell BZs</span>.
+  <span style="color:#5a8fd0">Unit-cell BZ</span> is tiled by 2x2 <span style="color:#c0392b">supercell BZs</span>.
   Folding collapses the four <strong style="color:#5a8fd0">k</strong><sub style="color:#5a8fd0">p=0,1,2,3</sub> onto <strong style="color:#c0392b">K</strong>;
   unfolding redistributes the supercell modes at <strong style="color:#c0392b">K</strong> back over the <strong style="color:#5a8fd0">k</strong><sub style="color:#5a8fd0">p=0,1,2,3</sub>.
   </figcaption>
@@ -103,7 +103,7 @@ where \(\mu\) runs over the unit-cell bands.
 A phonon mode is a displacement amplitude on each atom, so both modes are vectors of \(3\,N^\text{SC}_\text{atoms}\) components and the projection is a finite sum over supercell atoms.
 
 In the atomic gauge used by `phonopy`, a Bloch mode at \(\mathbf{k}\) carries the phase \(e^{i\mathbf{k}\cdot\mathbf{r}}\) on the atom at position \(\mathbf{r}\).
-For this special case \(\mathbf{G} = 0\) that makes \(\mathbf{k} = \mathbf{K}\), the Bloch phase factors from the supercell mode and the unit-cell mode cancel each other.
+In the special case \(\mathbf{G} = 0\), which makes \(\mathbf{k} = \mathbf{K}\), the Bloch phase factors from the supercell mode and the unit-cell mode cancel each other.
 The weight is then a plain sum of eigenvector components at the same \(\mathbf{k}\),
 
 \[
@@ -117,7 +117,7 @@ w_{\mathbf{k},\nu} = \frac{1}{N_\text{UC}} \sum_{\mu}
 where \((p\kappa)\) is the supercell atom that is the \(p\)-th copy of unit-cell atom \(\kappa\),
 and the unit-cell eigenvector \(e^\text{UC}_{\kappa\alpha,\mu}(\mathbf{k})\) is the same on every copy \(p\) (the advantage of \(\mathbf{G} = 0\)).
 
-Looking at this equation, we find that it is a projector: it projects the supercell mode onto the subspace with zero phase factor, the patterns identical on every unit-cell copy.
+This equation is a projector: it projects the supercell mode onto the subspace with zero phase factor, the patterns identical on every unit-cell copy.
 The unit-cell eigenvectors form a complete orthonormal basis of that subspace,
 \(\sum_{\mu} e_{\kappa\alpha,\mu}^\text{UC} \left( e_{\kappa'\alpha',\mu}^\text{UC} \right)^{*} = \delta_{\kappa\alpha,\kappa'\alpha'}\),
 so the weight does not depend on them at all[^allen]:
