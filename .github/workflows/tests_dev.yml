@@ -34,3 +34,17 @@ jobs:
         run: pip install -e ".[all]" "phonopy~=${{ matrix.phonopy-version }}"
       - name: Run tests
         run: pytest tests/ -v -m "not slow"
+
+  # for branch protection
+  ci-ok:
+    name: CI OK
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: always()
+    steps:
+      - name: Check that lint and all test matrix legs succeeded
+        run: |
+          echo "lint: ${{ needs.lint.result }}"
+          echo "test: ${{ needs.test.result }}"
+          [ "${{ needs.lint.result }}" = "success" ] && \
+          [ "${{ needs.test.result }}" = "success" ]
