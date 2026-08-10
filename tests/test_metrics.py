@@ -79,14 +79,14 @@ def test_verticality_out_of_plane_and_in_plane():
 
 
 def test_verticality_p1_out_of_plane_and_in_plane():
-    """Displacements along z give V_p1 = 1, in-plane give V_p1 = 0.
+    """V_p1 reaches 1 along z and drops to 0 in plane, as the p=2 form does.
 
-    Every atom moving along (1, 0, 1)/sqrt(2) mixes both characters equally.
+    The two forms part ways on the third mode, where every atom is half in-plane and half out-of-plane: the linear average gives 1/sqrt{2}, the p=2 form gives 1/2.
     """
     eigvecs = _pack_modes(
         [[0, 0, 1], [0, 0, 1]],  # purely out-of-plane
         [[1, 0, 0], [0, 1, 0]],  # purely in-plane
-        [[1, 0, 1], [1, 0, 1]],  # half in-plane, half out-of-plane on every atom
+        [[1, 0, 1], [1, 0, 1]],  # half in-plane, half out-of-plane
     )
     vp1 = compute_V_p1(atoms=_two_atoms(), ph_eigvecs=eigvecs)
     assert numpy.allclose(vp1, [[1.0, 0.0, 1 / numpy.sqrt(2)]])
@@ -96,7 +96,7 @@ def test_verticality_p1_over_weights_small_displacements():
     """For a large in-plane + small out-of-plane pair, V_p1 exceeds the p=2 form.
 
     With amplitudes (a, b) = (sqrt(0.99), sqrt(0.01)): V = b^2 = 0.01 while
-    V_p1 = sqrt(2) * (0 + b) / 2 = 0.1 / sqrt(2), an order of magnitude larger.
+    V_p1 = sqrt(2) * (0 + b) / 2 = 0.1 / sqrt(2), about seven times larger.
     """
     a, b = numpy.sqrt(0.99), numpy.sqrt(0.01)
     eigvecs = _pack_modes([[a, 0, 0], [0, 0, b]])

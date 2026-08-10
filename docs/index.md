@@ -33,7 +33,7 @@ The [Theory](theory/unfolding.md) section explains the mathematical details.
 - Atom matching for defective, de-registered, and layer-resolved systems, making unPHold work with a variety of supercell types.
 - Per-mode unfolding weights and easy unfolded band structure visualization.
 - Mode-character metrics: acoustic participation ratio (APR), longitudinality (L), and out-of-plane verticality (V).
-- Built on [phonopy](https://phonopy.github.io/phonopy/): unPHold reuses phonopy's force constants and structural metadata, so it works with any data source including DFT code and machine-learning interatomic potential (MLIP).
+- Built on [phonopy](https://phonopy.github.io/phonopy/): unPHold reuses phonopy's force constants and structural metadata, so it works with any data source including DFT code and machine-learning interatomic potentials (MLIPs).
 
 ## Getting started
 

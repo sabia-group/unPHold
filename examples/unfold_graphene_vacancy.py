@@ -116,12 +116,13 @@ def main(output: Path, npoints: int = 21):
     unfold.calculate_sc_phonon(dyn_sc=ph_vac.dynamical_matrix, factor="thz", show_progress=True)
     unfold.calculate_weights()
 
-    # Weight conservation with a vacancy: reduced from the pristine 3*N_uc_atoms.
-    weight_sum_mean = unfold.weights.sum(axis=1).mean()
+    # Weight conservation with a vacancy
+    weight_sums = unfold.weights.sum(axis=1)
     weight_sum_expected = 3 * len(atoms_pc) - 3 * n_vac / unfold.nucs_in_sc
     print(f"N_uc (cells in sc): {unfold.nucs_in_sc}")
     print(f"Weight sum expected: {weight_sum_expected:.5f}")
-    print(f"Weight sum actual:   {weight_sum_mean:.5f}")
+    print(f"Weight sum actual:   {weight_sums.mean():.5f}")
+    print(f"Max |deviation| over k-points: {np.abs(weight_sums - weight_sum_expected).max():.2e}")
 
     grid, _ = unfold.calculate_spectral_function_on_grid(grid=ENERGY_GRID, sigma=SIGMA)
     spectral = unfold.spectral_function_on_grid  # (nkpts, ngrid)
@@ -137,23 +138,30 @@ def main(output: Path, npoints: int = 21):
     out = Path(output)
     out.mkdir(parents=True, exist_ok=True)
 
-    # --- Figure: atomic-structure matching (the key step) ---
-    fig, axes = plt.subplots(1, 2, figsize=(9, 4.5))
+    # Figure: atomic-structure matching
+    fig, axes = plt.subplots(1, 2, figsize=(14, 7))
     vac_xy = sc_by_tmat.get_positions()[vac_ideal_idx, :2]
     ax = axes[0]
     visualize_cell_2d(sc_by_tmat, ax=ax)
+    for i, xy in enumerate(sc_by_tmat.get_positions()[:, :2]):
+        if perm[i] >= 0:
+            ax.annotate(str(perm[i]), xy, textcoords="offset points", xytext=(2, 2), fontsize=12)
+        else:
+            ax.annotate("-1", xy, textcoords="offset points", xytext=(8, 5), fontsize=12, color="red")
     ax.scatter(vac_xy[:, 0], vac_xy[:, 1], marker="x", s=120, color="red", zorder=5, label="vacancy")
-    ax.legend(loc="upper right")
-    ax.set_title("Ideal 9x9 tiling")
+    ax.legend(loc="upper left")
+    ax.set_title("Ideal 9x9 tiling, labels = perm_sc2gen values")
     ax = axes[1]
     visualize_cell_2d(sc_real, ax=ax)
-    ax.set_title("Relaxed cell (1 vacancy)")
+    for i, xy in enumerate(sc_real.get_positions()[:, :2]):
+        ax.annotate(str(i), xy, textcoords="offset points", xytext=(2, 2), fontsize=12)
+    ax.set_title("Relaxed cell (1 vacancy), labels = atom indices")
     fig.tight_layout()
     fig.savefig(out / "graphene_vacancy_matching.png", dpi=300)
     print(f"Saved {out / 'graphene_vacancy_matching.png'}")
     plt.close(fig)
 
-    # --- Figure: unfolded spectral function + pristine PC bands ---
+    # Figure: unfolded spectral function + pristine PC bands
     fig, ax = plt.subplots(figsize=(5, 4))
     im = ax.pcolormesh(k_dist, grid, spectral.T, cmap="Blues", norm=norm, shading="nearest")
     plt.colorbar(im, ax=ax, label=r"$A(\mathbf{k}, \omega)$ [arb.]")
