@@ -1,9 +1,9 @@
 # Defect Materials: Graphene Monolayer Vacancy
 
 In this section, we unfold the phonons of a graphene monolayer with a single vacancy back to the primitive cell.
-The full script is available at [`examples/unfold_graphene_vacancy.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_graphene_vacancy.py).
-The forces are obtained from model [MACE-OMAT-0](https://github.com/ACEsuit/mace-foundations), and data is available at [`tests/data/graphene`](https://github.com/sabia-group/unPHold/blob/main/tests/data/graphene).
-The following code snippets are extracted from the full script.
+The example script is available at [`examples/unfold_graphene_vacancy.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_graphene_vacancy.py).
+The forces are obtained from the model [MACE-OMAT-0](https://github.com/ACEsuit/mace-foundations), and data is available at [`tests/data/graphene`](https://github.com/sabia-group/unPHold/blob/main/tests/data/graphene).
+The following code snippets are extracted from the example script.
 
 <figure markdown>
   ![Vacancy matching](../assets/graphene_vacancy_relaxed_structure.png){ width=320 }
@@ -16,14 +16,14 @@ The following code snippets are extracted from the full script.
 
 `Unfold` needs to know which atom of the supercell corresponds to which site of the defect-free and ideal primitive-cell tiling.
 For a rigid or a weakly deregistrated supercell this map is a permutation and `Unfold` finds it automatically.
-With a vacancy the two structures have different atom counts, so we build the map explicitly with [`match_atoms_with_vacancies()`][unphold.utils.match_atoms_with_vacancies].
+In this case with a vacancy, one shall build the map explicitly with the helper function [`match_atoms_with_vacancies()`][unphold.utils.match_atoms_with_vacancies].
 
 We first construct the ideal 9x9x1 tiling from the primitive cell, then match the real defected and relaxed cell against it:
 
 ```python
-sc_by_tmat = make_supercell(atoms_pc, TMAT, wrap=False)  # ideal tiling: 162 sites
+sc_by_tmat = make_supercell(atoms_pc, TMAT, wrap=False)  # TMAT = diag([9, 9, 1])
 match = match_atoms_with_vacancies(ideal=sc_by_tmat, real=sc_real, spatial_tolerance=0.5)
-perm = match["perm_real2ideal"]        # ideal-indexed, real-valued, -1 at the vacancy
+perm = match["perm_real2ideal"]  # ideal-indexed, real-valued, -1 at the vacancy
 vac_ideal_idx = match["vacancy_indices"]
 ```
 
@@ -64,7 +64,7 @@ unfold.calculate_sc_phonon(dyn_sc=ph_vac.dynamical_matrix, factor="thz")
 unfold.calculate_weights()
 ```
 
-[`Unfold.calculate_sc_phonon()`][unphold.unfold.Unfold.calculate_sc_phonon] diagonalises the vacancy-cell dynamical matrix at each k-point, and [`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] projects each eigenvector onto the primitive-cell plane waves, skipping the vacancy site (its `-1` entry contributes a zero vector).
+And still, [`Unfold.calculate_sc_phonon()`][unphold.unfold.Unfold.calculate_sc_phonon] diagonalizes the dynamical matrix at each k-point, and [`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] projects each eigenvector onto the primitive-cell, skipping the vacancy site (its `-1` entry contributes a zero vector).
 
 ## Weight conservation with a vacancy
 
@@ -83,8 +83,7 @@ For this example (\(N^\text{uc}_\text{atoms} = 2\), \(n_v = 1\), \(N_\text{uc} =
 
 ## Unfolded spectral function
 
-The weights are defined mode by mode, at the discrete frequencies of the vacancy cell.
-To turn them into a band structure we place a Gaussian of width \(\sigma\) at each mode frequency and sum, weighted by \(w_{\mathbf{k},n}\):
+The weights are defined mode by mode, and one can turn them into a spetral function by applying a Gaussian broadening at each mode frequency with a fixed width \(\sigma\) and unfolding weight as the amplitude.
 
 $$
 A(\mathbf{k}, \omega) = \sum_n w_{\mathbf{k},n}\, g(\omega - \omega_{\mathbf{k},n}, \sigma)
@@ -102,10 +101,9 @@ With one vacancy per 81 primitive cells the defect density is high, so a large f
   <figcaption>Unfolded spectral function of the vacancy cell (blue), with the pristine primitive-cell bands overlaid (red), along Γ-M-K-Γ.</figcaption>
 </figure>
 
-The perturbation in the figure is not uniform across branches: the in-plane longitudinal and transverse acoustic branches (LA and TA) show band breaks and diffuse weight, while the out-of-plane acoustic and optic branches (ZA and ZO) barely change compared to the primitive cell.
+The branches are perturbated differently depending on their polarization.
+The in-plane longitudinal and transverse acoustic branches (LA and TA) show band breaks and diffuse weight, while the out-of-plane acoustic and optic branches (ZA and ZO) barely change compared to the primitive cell.
 There are two reasons for this:
-First, the monolayer graphene with a single vacancy is still flat, making the out-of-plane motion decoupled from the in-plane motion ($xz$ and $yz$ elements in the force constants are very close to zero), while in-plane longitudinal and transverse motion are coupled due to this vacancy.
-Second, most of a carbon-carbon bond's stiffness acts within the plane:
-displacing an atom in-plane stretches its bonds directly, while displacing it out of the plane only bends them, which costs far less energy.
-Removing an atom cuts three bonds, and what disappears with them is mostly in-plane restoring force,
-so the vacancy acts as a strong scatterer for the in-plane branches but a weak one for the out-of-plane branches.
+First, the monolayer graphene with a single vacancy is still flat, so the out-of-plane motion stays decoupled from the in-plane motion (the $xz$ and $yz$ elements of the force constants are very close to zero), whereas the in-plane longitudinal and transverse motions are coupled by the vacancy.
+Second, most of a carbon-carbon bond's stiffness acts within the plane: displacing an atom in-plane stretches its bonds directly, while displacing it out of the plane only bends them, which costs far less energy.
+Removing an atom cuts three bonds, and what disappears with them is mostly in-plane restoring force, so the vacancy is a strong scatterer for the in-plane branches but a weak one for the out-of-plane branches.

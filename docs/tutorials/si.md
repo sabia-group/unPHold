@@ -67,7 +67,7 @@ unfold.calculate_weights()
 ```
 
 [`Unfold.calculate_sc_phonon()`][unphold.unfold.Unfold.calculate_sc_phonon] diagonalises the supercell dynamical matrix at each k-point.
-[`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] projects each SC eigenvector onto the primitive-cell plane waves, yielding `unfold.weights` of shape `(nkpts, n_sc_modes)`.
+[`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] projects each SC eigenvector onto the primitive-cell space, yielding `unfold.weights` of shape `(nkpts, n_sc_modes)`.
 
 ## Validating unfolded phonon bands
 
