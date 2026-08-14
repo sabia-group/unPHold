@@ -117,7 +117,7 @@ def test_from_phonopy_wrappers_match_direct(data_dir):
     )
     ph.run_band_structure(kpts, path_connections=connections, with_eigenvectors=True)
     bs = ph._band_structure
-    atoms = atoms_ph2ase(ph.unitcell)
+    atoms = atoms_ph2ase(ph.primitive)
     cell_reciprocal = atoms.cell.reciprocal()
 
     apr_wrapped = compute_APR_from_phonopy(ph)
@@ -135,3 +135,29 @@ def test_from_phonopy_wrappers_match_direct(data_dir):
         assert numpy.allclose(apr_wrapped[seg_idx], apr_direct)
         assert numpy.allclose(lgt_wrapped[seg_idx], lgt_direct)
         assert numpy.allclose(v_wrapped[seg_idx], v_direct)
+
+
+def test_from_phonopy_wrappers_with_nonidentity_primitive_matrix(data_dir):
+    """The wrappers follow ``ph.primitive`` when it differs from ``ph.unitcell``.
+
+    With primitive_matrix = identity/2 (what phonopy v4 resolves on its own through
+    its default ``primitive_matrix="auto"``), the 16-atom Si cell reduces to a
+    2-atom primitive cell and the eigenvectors carry 6 bands, not 48.
+    """
+    run_dir = data_dir / "si" / "uc_2_sc_1_aims"
+    # plain list, not numpy array: phonopy compares primitive_matrix == "auto" internally
+    ph = load_phonopy(
+        run_dir / "phonopy.yaml",
+        primitive_matrix=[[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]],
+    )
+    ph.force_constants = read_force_constants_hdf5(run_dir / "force_constants.h5")
+    kpts, connections = get_band_qpoints_and_path_connections([[[0.0, 0.0, 0.0], [0.5, 0.0, 0.0]]], npoints=3)
+    ph.run_band_structure(kpts, path_connections=connections, with_eigenvectors=True)
+    assert len(ph.unitcell) == 16 and len(ph.primitive) == 2
+
+    apr_wrapped = compute_APR_from_phonopy(ph)
+    for seg in (*apr_wrapped, *compute_L_from_phonopy(ph), *compute_V_from_phonopy(ph)):
+        assert seg.shape == (3, 3 * len(ph.primitive))
+        assert numpy.all(numpy.isfinite(seg))
+    # at Gamma (first point of the first segment) the acoustic modes are in-phase: APR = 1
+    assert numpy.allclose(apr_wrapped[0][0, :3], 1.0)

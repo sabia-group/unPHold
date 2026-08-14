@@ -119,6 +119,9 @@ class Unfold:
                 to ``sc_by_tmat`` position-by-position (requires equal atom counts and no
                 vacancies).
             verbose (bool): Show progress bars.
+
+        Note:
+            Prepare supercell data and load the supercell with ``primitive_matrix="P"``.
         """
         self.uc = unitcell.copy()
         self.sc = supercell.copy()
@@ -218,7 +221,10 @@ class Unfold:
         This is the most expensive step.
 
         Args:
-            dyn_sc: Dynamical matrix from ``phonopy.dynamical_matrix``.
+            dyn_sc: Dynamical matrix from ``phonopy.dynamical_matrix``. Phonopy builds
+                it on ``phonopy.primitive``, so the Phonopy object must be loaded with
+                ``primitive_matrix="P"`` to keep it on the same cell as ``supercell``
+                (see [`Unfold`][unphold.unfold.Unfold]).
             factor (float or str): Energy unit conversion. Strings: ``"ev"``, ``"mev"``,
                 ``"thz"``, ``"cm"``. Default: ``VASP_TO_EV``.
             save_fpath (str, optional): Path to save results as ``.npz``.

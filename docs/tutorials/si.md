@@ -17,6 +17,13 @@ The following code snippets are extracted from the full script.
 unPHold only needs a `Phonopy` object of the supercell (usually reloaded from a `phonopy.yaml` file) with its force constants as input.
 One can refer to [this tutorial](https://how-tos.readthedocs.io/en/latest/phonopy_simple/phonopy_in_python.html) for a complete phonopy workflow in Python.
 
+!!! warning "Load supercell runs with `primitive_matrix='P'`"
+    Phonopy builds the dynamical matrix and the eigenvectors on `ph.primitive`, not on the input cell `ph.unitcell`.
+    Since phonopy v4, `phonopy.load` changes defaults to `primitive_matrix="auto"` but not previous `"P"` (the identity).
+    The 2x2x2 supercell here would then be reduced back to the 2-atom primitive cell,
+    and the eigenvectors would no longer match the supercell geometry taken from `ph.unitcell`.
+    Pass `primitive_matrix="P"` (the identity) when loading a supercell run for unfolding, as done in the full script.
+
 We have prepared the 2x2x2 supercell data (`tests/data/si/uc_2_sc_1_aims/`) for unfolding, as well as the primitive cell data (`tests/data/si/uc_1_sc_2_aims/`) for reference.
 Since their respective supercells for constructing force constants by finite difference are the same, the unfolded supercell phonon bands should match the primitive cell bands exactly.
 

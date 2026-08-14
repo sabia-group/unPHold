@@ -34,7 +34,7 @@ def compute_APR_from_phonopy(ph: Phonopy) -> list:
     for kseg_idx in range(len(ph._band_structure.qpoints)):
         apr_list.append(
             compute_APR(
-                atoms=atoms_ph2ase(ph.unitcell),
+                atoms=atoms_ph2ase(ph.primitive),
                 ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
             )
         )
@@ -106,11 +106,11 @@ def compute_L_from_phonopy(ph: Phonopy) -> list:
     """
     assert ph._band_structure is not None, "Band structure not computed."
     L_list = []
-    cell_reciprocal = atoms_ph2ase(ph.unitcell).cell.reciprocal()
+    cell_reciprocal = atoms_ph2ase(ph.primitive).cell.reciprocal()
     for kseg_idx in range(len(ph._band_structure.qpoints)):
         L_list.append(
             compute_L(
-                atoms=atoms_ph2ase(ph.unitcell),
+                atoms=atoms_ph2ase(ph.primitive),
                 ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
                 q=2 * numpy.pi * ph._band_structure.qpoints[kseg_idx] @ cell_reciprocal,
             )
@@ -200,7 +200,7 @@ def compute_V_from_phonopy(ph: Phonopy) -> list:
     for kseg_idx in range(len(ph._band_structure.qpoints)):
         V_list.append(
             compute_V(
-                atoms=atoms_ph2ase(ph.unitcell),
+                atoms=atoms_ph2ase(ph.primitive),
                 ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
             )
         )
