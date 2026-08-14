@@ -191,7 +191,7 @@ class Unfold:
     ):
         """Set the k-points to evaluate, given in the unit-cell BZ.
 
-        Cartesian coordinates are without the 2π prefactor (i.e. in units of inversed Angstrom).
+        Cartesian coordinates are without the 2π prefactor (i.e. in units of inverse Angstrom).
 
         Args:
             kpts (numpy.ndarray): K-points, shape ``(nkpts, 3)``.

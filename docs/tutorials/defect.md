@@ -38,7 +38,7 @@ and each atom of the real relaxed structure on the right with its own sequential
 
 ## Preparing inputs
 
-As in the other tutorials, we load a `Phonopy` object with its force constants for both the vacancy cell (the unfolding source) and the pristine cell (whose bands are the reference).
+We load a `Phonopy` object with its force constants for both the vacancy cell (the unfolding source) and the pristine cell (whose bands are the reference).
 The relaxed primitive cell is read directly from `gp_pc.xyz`, the 2-atom cell relaxed with the same model.
 This is the same cell we tiled to build the ideal reference in the matching step above.
 
@@ -56,7 +56,7 @@ unfold = Unfold(
 
 ## Running the unfolding
 
-We use the hexagonal k-path `Γ-M-K-Γ` in the primitive-cell BZ, then run the same three steps as the pristine tutorials:
+We use the hexagonal k-path `Γ-M-K-Γ` in the primitive-cell BZ, then run the three steps for unfolding:
 
 ```python
 unfold.set_kpts_in_unitcell(kpts_flat, format="fractional")
