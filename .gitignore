@@ -46,5 +46,8 @@ Thumbs.db
 # Large test data (tracked via Git LFS — use .gitattributes for LFS, not exclusion)
 # tests/data/large/ is LFS-tracked, not excluded
 
+# Large file but not yet on LFS
+tests/data/mol2dmat/graphene_MePTCDI_2x2_mace/force_constants.h5
+
 # Example outputs (generated figures, not committed)
 examples/output/

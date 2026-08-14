@@ -31,7 +31,7 @@ def _match_vacancy(data_dir):
     atoms_pc = read(data_dir / "graphene" / "vacancy_uc_9_sc_1_mace" / "gp_pc.xyz")  # relaxed 2-atom primitive cell
     ph_vac = _load_graphene(data_dir, "vacancy_uc_9_sc_1_mace")
     sc_real = atoms_ph2ase(ph_vac.unitcell)  # 161-atom cell with one vacancy
-    sc_by_tmat = make_supercell(atoms_pc, GRAPHENE_TMAT, wrap=False, order="cell-major")  # ideal 162-site tiling
+    sc_by_tmat = make_supercell(atoms_pc, GRAPHENE_TMAT, wrap=False)  # ideal 162-site tiling
     match = match_atoms_with_vacancies(ideal=sc_by_tmat, real=sc_real, spatial_tolerance=0.5)
     return ph_vac, atoms_pc, sc_real, match
 

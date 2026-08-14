@@ -11,9 +11,10 @@ nav:
       - Unfolding theory: theory/unfolding.md
       - Metrics for mode characterization: theory/metrics.md
   - Tutorials:
-      - "Si: 3D bulk unfolding": tutorials/si.md
-      - "Twisted bilayer graphene: 2D layer unfolding": tutorials/twisted_bilayer.md
-      - "Defect materials": tutorials/defect.md
+      - "3D bulk: Si": tutorials/si.md
+      - "2D layers: twisted bilayer graphene": tutorials/twisted_bilayer.md
+      - "Defect material: graphene with vacancy": tutorials/defect.md
+      - "Heterostructure: molecular array on graphene": tutorials/mol2dmat.md
       - "Graphene phonon mode characterization": tutorials/metrics.md
   - API Reference:
       - Unfold: api/unfold.md

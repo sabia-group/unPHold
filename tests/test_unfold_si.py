@@ -52,7 +52,7 @@ def test_si_weight_conservation(data_dir):
     ph_sc = _load_si(data_dir, "uc_2_sc_1_aims", primitive_matrix="P")
 
     kpts_uc, kpts_flat, connections, _ = _build_si_kpts()
-    kpts_sc = [kpt @ SI_TMAT for kpt in kpts_uc]  # transfrom from fractional UC to fractional SC
+    kpts_sc = [kpt @ SI_TMAT.T for kpt in kpts_uc]  # transfrom from fractional UC to fractional SC
 
     ph_sc.run_band_structure(kpts_sc, path_connections=connections, labels=SI_BZ_PATH[0])
 

@@ -1,8 +1,13 @@
 """Phonon mode character metrics.
 
 Functions for quantifying the physical character of phonon modes:
-acoustic participation ratio (APR), longitudinality (L), verticality (V),
-and Gaussian band expansion for plotting.
+
+- [`compute_APR`][unphold.metrics.compute_APR]: acoustic participation ratio (APR)
+- [`compute_L`][unphold.metrics.compute_L]: longitudinality (L)
+- [`compute_V`][unphold.metrics.compute_V]: out-of-plane polarisation (V)
+
+Each has a `*_from_phonopy` wrapper that takes a `Phonopy` object instead of
+explicit eigenvectors.
 """
 
 import numpy

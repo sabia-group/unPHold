@@ -59,24 +59,16 @@ class Unfold:
     If ``perm_sc2gen`` is not supplied, it is computed automatically by matching
     ``supercell`` and ``sc_by_tmat`` position-by-position (see
     [`match_two_atoms`][unphold.utils.match_two_atoms]); this only works when the two
-    have identical atom counts and no vacancies.
+    have identical atom counts / species and no defects.
 
     ## Handling defects
 
     For a supercell with vacancies, mark the corresponding ideal sites in
     ``perm_sc2gen`` with ``-1``. The projector is built by zero-padding: an ideal site
     with no real counterpart contributes nothing to the inner product, rather than being
-    excluded from the basis. One consequence is that the captured spectral weight is
-    then no longer exactly conserved - for $n_v$ point vacancies,
+    excluded from the basis.
 
-    $$\\sum_n w_{k,n} = 3\\,N_{atoms}^{uc} - \\frac{3 n_v}{N_{uc}}$$
-
-    instead of $3\\,N_{atoms}^{uc}$ exactly, with the deficit vanishing as the supercell
-    size $N_{uc}$ grows (dilute-defect limit). This is expected, not a bug: the missing
-    atom's phonon character is genuinely absent from the diagonalised system, so it
-    cannot be captured by this projector.
-
-    Example::
+    ## Example
 
         from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
         from unphold import Unfold
@@ -104,7 +96,6 @@ class Unfold:
         unitcell: aseAtoms,
         supercell: aseAtoms,
         transformation_matrix: numpy.ndarray,
-        transformation_matrix_ph: numpy.ndarray = None,
         angle: float | None = None,
         spatial_tolerance: float = 5e-2,
         perm_sc2gen: numpy.ndarray | None = None,
@@ -116,10 +107,8 @@ class Unfold:
             supercell (aseAtoms): Supercell from the phonon calculation
                 (retrieve via ``phonopy.unitcell`` after converting with ``atoms_ph2ase``).
             transformation_matrix (numpy.ndarray): Integer matrix mapping unitcell → supercell.
-            transformation_matrix_ph (numpy.ndarray, optional): Phonopy-internal transformation
-                matrix (not required by the current algorithm).
             angle (float, optional): Rotation angle in degrees to align the generated supercell
-                with the Phonopy supercell (moiré systems).
+                with the Phonopy supercell (moire systems).
             spatial_tolerance (float): Atom-matching tolerance in Angstrom.
             perm_sc2gen (numpy.ndarray, optional): Index array of shape
                 ``(nucs_in_sc * len(unitcell),)``, one entry per atom of the ideal
@@ -134,7 +123,6 @@ class Unfold:
         self.uc = unitcell.copy()
         self.sc = supercell.copy()
         self.tmat = transformation_matrix
-        self.tmat_ph = transformation_matrix_ph
         self.angle = angle
         self.sc_by_tmat = None
         self.perm_sc2gen = perm_sc2gen
@@ -158,15 +146,15 @@ class Unfold:
             sc_lattice = tmat @ uc_lattice
             uc_BZ      = tmat.T @ sc_BZ
         """
-        # order="cell-major" is load-bearing: the projection in _calculate_weights_one_kpt_v2
-        # assumes atom p * uc_natoms + kappa is the p-th copy of unit-cell atom kappa.
-        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False, order="cell-major")
+        self.sc_by_tmat = make_supercell(self.uc, self.tmat, wrap=False)
         if self.angle is not None:
-            assert isinstance(self.angle, float)
+            if not isinstance(self.angle, (int, float)):
+                raise TypeError(f"angle={self.angle!r} must be a float in degrees")
             self.sc_by_tmat.rotate(self.angle, "z", rotate_cell=True)
 
         if self.perm_sc2gen is not None:
-            assert isinstance(self.perm_sc2gen, numpy.ndarray)
+            if not isinstance(self.perm_sc2gen, numpy.ndarray):
+                raise TypeError(f"perm_sc2gen={self.perm_sc2gen!r} must be a numpy.ndarray")
             assert self.perm_sc2gen.shape == (len(self.sc_by_tmat),), (
                 f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
                 f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
@@ -199,7 +187,7 @@ class Unfold:
     ):
         """Set the k-points to evaluate, given in the unit-cell BZ.
 
-        Cartesian coordinates are without the 2π prefactor (i.e. in units of Å⁻¹).
+        Cartesian coordinates are without the 2π prefactor (i.e. in units of inverse Angstrom).
 
         Args:
             kpts (numpy.ndarray): K-points, shape ``(nkpts, 3)``.
@@ -234,7 +222,7 @@ class Unfold:
             factor (float or str): Energy unit conversion. Strings: ``"ev"``, ``"mev"``,
                 ``"thz"``, ``"cm"``. Default: ``VASP_TO_EV``.
             save_fpath (str, optional): Path to save results as ``.npz``.
-            show_progress (bool): If True, diagonalise k-points one at a time with a
+            show_progress (bool): If True, diagonalise k-points one by one with a
                 progress bar. If False (default), diagonalise all k-points in a
                 single Phonopy call (faster, but progress cannot be tracked since
                 it is internal to Phonopy).
@@ -243,14 +231,15 @@ class Unfold:
             pass
         elif isinstance(factor, str):
             factor = factor.lower()
-            assert factor in ("ev", "mev", "thz", "cm"), f"factor={factor!r} not supported"
+            if factor not in ("ev", "mev", "thz", "cm"):
+                raise ValueError(f"factor={factor!r} not supported")
             factor = {"ev": VASP_TO_EV, "mev": VASP_TO_EV * 1e3, "thz": VASP_TO_THZ, "cm": VASP_TO_CM}[factor]
         else:
             raise ValueError(f"factor={factor!r} not supported")
 
         time_start = time.time()
         if show_progress:
-            iterator = tqdm(self.kpts_sc_frac, desc="Diagonalizing") if self.verbose else self.kpts_sc_frac
+            iterator = tqdm(self.kpts_sc_frac, desc="Diagonalizing")
             energies_list = []
             eigenvecs_list = []
             for kpt in iterator:
@@ -300,7 +289,8 @@ class Unfold:
         Returns:
             float: The energy conversion factor used when the file was saved.
         """
-        assert os.path.exists(save_fpath), f"File {save_fpath} does not exist."
+        if not os.path.exists(save_fpath):
+            raise FileNotFoundError(f"File {save_fpath} does not exist.")
         data = numpy.load(save_fpath, allow_pickle=True)
         assert data["bs_sc_energies"].shape[0] == self.kpts_sc_frac.shape[0]
         assert data["bs_sc_energies"].shape[1] == len(self.sc) * 3
@@ -396,14 +386,14 @@ class Unfold:
         valid = self.perm_sc2gen >= 0
         sc2gen_modes[valid] = sc_modes[self.perm_sc2gen[valid]]
 
-        # sc_by_tmat is built cell-major (see prepare), so the copies of each unit-cell atom
+        # sc_by_tmat is built cell-major (by default param), so the copies of each unit-cell atom
         # are the leading axis and the overlap is a plain sum over it.
         overlap = sc2gen_modes.reshape(self.nucs_in_sc, uc_natoms, 3, nbands).sum(axis=0)
         return (numpy.abs(overlap) ** 2).sum(axis=(0, 1)) / self.nucs_in_sc
 
     _calculate_weights_one_kpt = _calculate_weights_one_kpt_v2
 
-    def calculate_weights(self, algo_version: int | None = None):
+    def calculate_weights(self, algo_version: int = 2):
         """Calculate spectral weights for all k-points.
 
         Results are stored in ``self.weights``, shape ``(nkpts, sc_nbands)``.
@@ -415,8 +405,10 @@ class Unfold:
         for kpt_idx in iterator:
             if algo_version == 1:
                 weights.append(self._calculate_weights_one_kpt_v1(kpt_idx))
-            else:
+            elif algo_version == 2:
                 weights.append(self._calculate_weights_one_kpt_v2(kpt_idx))
+            else:
+                raise ValueError(f"algo_version={algo_version} not supported")
         self.weights = numpy.array(weights)
 
     def _calculate_spectral_function_on_grid_one_kpt(

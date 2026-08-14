@@ -25,7 +25,7 @@ Beyond the unfolding supercell phonon bands, unPHold also characterizes individu
   ![Layer-breathing mode of twisted bilayer graphene](assets/tbg_m6r1_viz_lbm_24.png){ width=700 }
   <figcaption>
     <strong>A special layer-breathing mode (LBM) of twisted bilayer graphene at &Gamma;</strong>.
-    The bottom layer (left) and the top layer (right) move antiphase out-of-plane (colour, red for +z and blue for -z), with moire-modified amplitude at AA and AB stacking regions.
+    The bottom layer (left) and the top layer (right) move antiphase out-of-plane (colour, red for +z and blue for -z), with moiré-modified amplitude at AA and AB stacking regions.
   </figcaption>
 </figure>
 

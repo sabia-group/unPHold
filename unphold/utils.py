@@ -1,8 +1,4 @@
-"""Internal utilities for atom matching and structure conversion.
-
-These are implementation details used by the Unfold class.
-They are not part of the public API and should not be imported directly by users.
-"""
+"""Internal utilities."""
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
@@ -249,7 +245,7 @@ def match_atoms_with_vacancies(
     Returns:
         dict with keys:
             - ``perm_real2ideal``: index array of shape ``(len(ideal),)`` such that
-              ``ideal == real[perm_real2ideal]`` at valid (non-vacancy) entries -- i.e. it is
+              ``ideal == real[perm_real2ideal]`` at valid (non-vacancy) entries, i.e. it is
               *ideal-indexed* and its values are *real-valued* indices, following the same
               ``X_A2B`` convention as [`match_two_atoms`][unphold.utils.match_two_atoms]
               (``B = A[X_A2B]``, here A=real, B=ideal) and ``Unfold``'s own ``perm_sc2gen``
@@ -295,13 +291,13 @@ def match_atoms_with_vacancies(
     matched = perm[perm >= 0]
     if len(numpy.unique(matched)) != len(matched):
         ret_dict["fail_reason"] = (
-            "match is not injective -- some real atoms matched to multiple ideal sites; lower spatial_tolerance"
+            "match is not injective, some real atoms matched to multiple ideal sites; lower spatial_tolerance"
         )
         return ret_dict
     if len(matched) != len(real):
         ret_dict["fail_reason"] = (
             f"{len(real) - len(matched)} real atom(s) did not match any ideal site within "
-            f"spatial_tolerance={spatial_tolerance} -- real may contain atoms/species not present "
+            f"spatial_tolerance={spatial_tolerance}, real may contain atoms/species not present "
             "in ideal, or spatial_tolerance is too small"
         )
         return ret_dict
@@ -545,10 +541,6 @@ class RelaxBySpring:
 
     All operations are vectorized and handle periodic boundary conditions in all three
     directions using fractional coordinates.
-
-    Warning:
-        This class was written by an LLM and should be tested more carefully before being
-        relied on in production.
 
     Args:
         atoms (aseAtoms): The atomic structure to be relaxed. Must have periodic boundary

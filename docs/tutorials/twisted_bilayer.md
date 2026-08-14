@@ -128,7 +128,7 @@ unfold = Unfold(
 )
 ```
 
-The k-path setup and the `calculate_*` sequence are identical to the [Si tutorial](si.md):
+The k-path setup, the [`Unfold.calculate_sc_phonon()`][unphold.unfold.Unfold.calculate_sc_phonon] and the [`Unfold.calculate_weights()`][unphold.unfold.Unfold.calculate_weights] calls are identical to the [Si tutorial](si.md):
 `kpts_uc_flat` is the flat array of k-points along the Γ-K-M-Γ path chosen above, in the layer-0 PC BZ.
 
 ```python
