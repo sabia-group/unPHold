@@ -1,34 +1,16 @@
 """Unfold the phonons of a MePTCDI molecular layer on graphene onto both sublattices.
 
-The input is a fully relaxed (atoms and cell) commensurate cell: 232 graphene C atoms
-plus four MePTCDI (N,N'-dimethylperylene-3,4,9,10-tetracarboxylic diimide) molecules of
-46 atoms each. Force constants come from MACE-MH-1 finite displacements on a 3x3x1
-supercell. The same supercell phonons are unfolded twice:
-
-1. Graphene primitive cell (PC). The relaxed lattice is slightly sheared, so the PC is
-   simply ``inv(TMAT_GRAPHENE) @ cell`` (det 116, 232 C atoms) with the two basis atoms
-   at ideal honeycomb fractional sites; the small registry offset of the real layer is
-   absorbed by the position matching that builds ``perm_sc2gen``.
-2. Molecular PC (one molecule). The molecule centers sit on an oblique lattice,
-   ``TMAT_MOL = [[2, -1], [0, 2]]`` (det 4), not a naive 2x2. Each molecule is
-   individually rotated in-plane and neighbors alternate in 180-degree flips, so the
-   atom correspondence is built molecule by molecule: rotate the isolated symmetrized
-   molecule (``relaxed_sym.xyz``) onto each one and match species-resolved nearest
-   neighbors, which keeps the CH3 hydrogens unambiguous.
-
-Graphene is unfolded along a k-path (G-M-K-G by default). The molecular bands are
-nearly flat, so the molecular unfolding runs on a uniform mesh instead, and the
-k-averaged unfolded density of states (DOS) is compared with the DOS of the isolated
-molecule.
-
-The case dir needs ``phonopy.yaml`` + ``force_constants.h5``; the molecule dir
-additionally provides ``relaxed_sym.xyz``. The derived graphene PC and the
-transformation matrices are written back into the case dir, figures go to
-``examples/output``.
+The structure is relaxed by MACE-MH1 and the force constants are computed by finite differences
+using the same model with 3x3x1 supercell.
+The graphene layer is slightly sheared. Both transformation matrices for the graphene and molecules
+are provided.
+The MACE-MH1-relaxed MePTCDI molecule and its forces constants are also provided for comparing VDOS.
+See data at `tests/data/mol2dmat`.
 
 Usage:
     python examples/unfold_mol2dmat.py                          # quick test settings
     python examples/unfold_mol2dmat.py --kpts 101 --mol-mesh 6  # production
+    python examples/unfold_mol2dmat.py --viz-idx {0..10}        # visualize Gamma modes
 """
 
 import argparse
@@ -59,8 +41,6 @@ _TESTS_DATA = Path(__file__).parent.parent / "tests" / "data"
 DATA_DEFAULT = _TESTS_DATA / "mol2dmat" / "graphene_MePTCDI_2x2_mace"
 DATA_MOL_DEFAULT = _TESTS_DATA / "mol2dmat" / "MePTCDI_mace"
 OUTPUT_DEFAULT = Path(__file__).parent / "output"
-
-A_GRAPHENE = 2.46  # ideal graphene lattice constant (Angstrom), 60-degree cell convention
 
 # graphene PC -> supercell, in-plane; det = 116 -> 232 C atoms
 TMAT_GRAPHENE = numpy.array([[8, -4, 0], [-1, 15, 0], [0, 0, 1]])
@@ -113,15 +93,16 @@ def build_graphene_pc(atoms_sc: Atoms, idx_graphene: numpy.ndarray) -> Atoms:
 
     # human readable data for the graphene primitive cell
     la, lb, gamma = cell_params_2d(gp_pc_cell_from_atoms_sc)
-    print(f"graphene primitive cell: a={la:.4f} b={lb:.4f}, a/b difference: {200*abs(la - lb)/(la+lb):.4f} %")
+    print(f"graphene primitive cell: a={la:.4f} b={lb:.4f}, a/b difference: {200 * abs(la - lb) / (la + lb):.4f} %")
     print(f"graphene primitive cell: gamma {gamma:.3f} degrees, expected 60 degrees")
 
     # construct the graphene primitive cell, intentionally displace atomic positions in PC
     gp_pc_positions = numpy.zeros((2, 3))
-    gp_pc_positions[0,:2] = (gp_pc_cell_from_atoms_sc[0,:2] + gp_pc_cell_from_atoms_sc[1,:2]) * 2 / 3
-    gp_pc_positions[1,:2] = (gp_pc_cell_from_atoms_sc[0,:2] + gp_pc_cell_from_atoms_sc[1,:2])
-    gp_pc_positions[:,2] = atoms_sc.positions[idx_graphene].mean(axis=0)[2]  # actually not necessary, just to be safe
+    gp_pc_positions[0, :2] = (gp_pc_cell_from_atoms_sc[0, :2] + gp_pc_cell_from_atoms_sc[1, :2]) * 2 / 3
+    gp_pc_positions[1, :2] = gp_pc_cell_from_atoms_sc[0, :2] + gp_pc_cell_from_atoms_sc[1, :2]
+    gp_pc_positions[:, 2] = atoms_sc.positions[idx_graphene].mean(axis=0)[2]  # actually not necessary, just to be safe
     return Atoms("C2", cell=gp_pc_cell_from_atoms_sc, positions=gp_pc_positions, pbc=True)
+
 
 def find_molecules(atoms_sc: Atoms, idx_mol: numpy.ndarray) -> list:
     """Identify molecules as connected components and unwrap each across the PBC.
@@ -331,7 +312,7 @@ def plot_bz_kpath(atoms_pc: Atoms, atoms_sc: Atoms, kpts_segs: list, tmat: numpy
     n_rep = int(numpy.ceil(numpy.sqrt(abs(numpy.linalg.det(tmat)) / 3)))
     fig, ax = plt.subplots(figsize=(3, 3))
     visualize_BZ_2d(atoms_pc, plt_kwargs={"color": "C0"}, ax=ax)
-    visualize_BZ_2d(atoms_sc, plt_kwargs={"color": "C1"}, ax=ax, repeat=(int(n_rep/2**0.5), int(n_rep*2**0.5)))
+    visualize_BZ_2d(atoms_sc, plt_kwargs={"color": "C1"}, ax=ax, repeat=(int(n_rep / 2**0.5), int(n_rep * 2**0.5)))
     visualize_kpath_2d(atoms_pc, fractional_coordinate=numpy.concatenate(kpts_segs), plt_kwargs={"color": "r"}, ax=ax)
     ax.autoscale(tight=True)
     ax.margins(0)
@@ -392,12 +373,18 @@ def visualize_gamma_motion(
         panels = ((axes[0], idx_graphene, "graphene layer"), (axes[1], idx_mol, "molecular layer"))
         for ax, idx, title in panels:
             pos = atoms_sc.positions[idx]
-            scatter = ax.scatter(
-                pos[:, 0], pos[:, 1], c=disp[idx, 2], cmap="coolwarm", vmin=-1, vmax=1, s=14, zorder=2
-            )
+            scatter = ax.scatter(pos[:, 0], pos[:, 1], c=disp[idx, 2], cmap="coolwarm", vmin=-1, vmax=1, s=14, zorder=2)
             ax.quiver(
-                pos[:, 0], pos[:, 1], disp[idx, 0], disp[idx, 1],
-                angles="xy", scale_units="xy", scale=1 / 3.0, width=0.004, color="black", zorder=3,
+                pos[:, 0],
+                pos[:, 1],
+                disp[idx, 0],
+                disp[idx, 1],
+                angles="xy",
+                scale_units="xy",
+                scale=1 / 3.0,
+                width=0.004,
+                color="black",
+                zorder=3,
             )
             ax.plot(corners[:, 0], corners[:, 1], color="grey", lw=0.8, zorder=1)
             ax.set_aspect("equal")
@@ -495,8 +482,8 @@ def unfold_mol_dos(
     atoms_pc_mol: Atoms,
     atoms_sc: Atoms,
     perm: numpy.ndarray,
-    ph:Phonopy,
-    ph_iso:Phonopy,
+    ph: Phonopy,
+    ph_iso: Phonopy,
     mesh: int,
     out: Path,
     prefix: str,
@@ -586,13 +573,7 @@ def main(
         out / f"{prefix}_match_mol.png",
     )
 
-
-    # deposit the derived graphene PC and the transformation matrices next to the
-    # phonon data, so the dataset is self-contained for tests and downstream scripts
-    numpy.savez(data_dir / "tmat.npz", tmat_graphene=TMAT_GRAPHENE, tmat_mol=TMAT_MOL)
-    print(f"Saved tmat.npz to {data_dir}")
-
-    # --- graphene: k-path unfolding ---
+    #### graphene: k-path unfolding
     path_gp = make_kpath(atoms_pc_gp, GR_SPECIAL_POINTS, gr_path_labels, npoints)
     plot_bz_kpath(atoms_pc_gp, atoms_sc, path_gp["kpts_segs"], TMAT_GRAPHENE, out / f"{prefix}_bz_kpath_graphene.png")
     unfold_and_plot(
@@ -611,7 +592,7 @@ def main(
         idx_mol=idx_mol,
     )
 
-    # --- molecule: DOS comparison against the isolated molecule ---
+    #### molecule: DOS comparison against the isolated molecule
     ph_iso = load(data_mol_dir)
     unfold_mol_dos(atoms_pc_mol, atoms_sc, perm_mol, ph, ph_iso, mol_mesh, out, prefix)
 

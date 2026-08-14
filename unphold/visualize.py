@@ -194,6 +194,8 @@ def plot_layer_mode_2d(
     atoms: aseAtoms,
     displacements: numpy.ndarray,
     freqs: float | numpy.ndarray | None = None,
+    freqs_unit: str = "THz",
+    length_unit: str = "Å",
     axes: Axes | list[Axes] = None,
     cmap: str = "bwr",
     norm: Normalize | None = None,
@@ -206,12 +208,9 @@ def plot_layer_mode_2d(
     In-plane (x, y) displacement -> arrows (quiver).
     Out-of-plane (z) displacement -> marker color (diverging cmap, white = 0).
 
-    This function is purely geometric: it plots a given ``atoms`` structure with a
-    given displacement field (e.g. a phonon eigenmode's real part, already sliced
-    to whichever atoms/layer the caller wants shown) and has no knowledge of how
-    the displacements were obtained. Callers extract per-layer atoms and mode
-    displacements (e.g. from an [`Unfold`][unphold.unfold.Unfold] instance's
-    Gamma-point eigenvectors) before calling this function.
+    Callers extract per-layer atoms and mode displacements (e.g. from an
+    [`Unfold`][unphold.unfold.Unfold] instance's Gamma-point eigenvectors)
+    then visualize them with this function.
 
     Args:
         atoms (aseAtoms): Structure to plot (e.g. one layer of a bilayer system).
@@ -279,11 +278,11 @@ def plot_layer_mode_2d(
         ax.quiver(x, y, dx, dy, **qkw)
 
         ax.set_aspect("equal")
-        ax.set_xlabel("x (Å)")
-        ax.set_ylabel("y (Å)")
+        ax.set_xlabel(f"x ({length_unit})")
+        ax.set_ylabel(f"y ({length_unit})")
         freq = freqs_list[mode_idx]
         if freq is not None:
-            ax.set_title(f"freq = {freq:.4f} THz")
+            ax.set_title(f"freq = {freq:.4f} {freqs_unit}")
 
         mappables.append(sca)
 

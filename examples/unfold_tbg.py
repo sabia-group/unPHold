@@ -128,7 +128,7 @@ def main(
     print(f"PC rotation angle (deg): {ret_pc_rot['rot_angle_deg']:.3f}")
 
     sc_from_pc = make_supercell(atoms_gp_pc, tmat_l0)
-    sc_from_pc_rot = make_supercell(atoms_pc_rot, tmat_l0, order="cell-major")
+    sc_from_pc_rot = make_supercell(atoms_pc_rot, tmat_l0)
 
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
     visualize_cell_2d(sc_from_pc, ax=axes[0])

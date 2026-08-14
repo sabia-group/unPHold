@@ -16,8 +16,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      - run: ruff format --check unphold/
-      - run: ruff check unphold/
+      - run: ruff format --check .
+      - run: ruff check .
 
   test:
     name: Tests (Python ${{ matrix.python-version }}, phonopy ~=${{ matrix.phonopy-version }})
@@ -34,7 +34,7 @@ jobs:
       - name: Install package and dev deps
         run: pip install -e ".[all]" "phonopy~=${{ matrix.phonopy-version }}"
       - name: Run tests
-        run: pytest tests/ -v -m "not slow"
+        run: pytest tests/ -v
 
   # for branch protection
   ci-ok:
