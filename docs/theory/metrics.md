@@ -14,10 +14,12 @@ The acoustic participation ratio[^kamencek] measures how in-phase the atomic dis
 \mathrm{APR}_{\mathbf{q},n} =
 \frac{2}{N(N+1)}
 \frac{
-\left| \sum_{\kappa,\kappa'} \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}} \right|^2
+\left| \sum_{\kappa \leq \kappa'} A_{\kappa\kappa'} \right|^2
 }{
-\sum_{\kappa,\kappa'} \left| \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}} \right|^2
-}
+\sum_{\kappa \leq \kappa'} \left| A_{\kappa\kappa'} \right|^2
+},
+\qquad
+A_{\kappa\kappa'} = \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}}
 \]
 
 where \(m_\kappa\) are the atomic masses and the sum runs over unique atom pairs.
@@ -31,10 +33,13 @@ Longitudinality[^legenstein] measures how much a mode's displacement aligns with
 
 \[
 L_{\mathbf{q},n} =
-\frac{1}{N} \left| \sum_{\kappa=1}^{N} \hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n} \right|
+\frac{1}{N} \left| \sum_{\kappa=1}^{N}
+\frac{\hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n}}{|e^\kappa_{\mathbf{q},n}|} \right|
 \]
 
-\(L=1\) marks a purely longitudinal mode and \(L=0\) a purely transverse one.
+Each atom contributes only its displacement direction, normalised per atom, so displacement amplitudes do not enter.
+\(L=1\) marks a purely longitudinal in-phase mode and \(L=0\) a purely transverse one.
+The projections are averaged with their sign, so an antiphase longitudinal mode also gives \(L=0\).
 Computed by [`unphold.metrics.compute_L()`][unphold.metrics.compute_L].
 
 ## Verticality (V)

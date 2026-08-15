@@ -1,6 +1,7 @@
 """Unit tests for the mode character metrics (APR, L, V) on synthetic eigenvectors."""
 
 import numpy
+import pytest
 from ase.atoms import Atoms as aseAtoms
 from phonopy.cui.load import load as load_phonopy
 from phonopy.file_IO import read_force_constants_hdf5
@@ -52,6 +53,34 @@ def test_apr_acoustic_and_optic():
     assert numpy.allclose(apr, [[1.0, 1.0 / 9.0], [1.0, 1.0 / 9.0]])
 
 
+def test_apr_matches_dense_pair_sum():
+    """The O(N) evaluation reproduces the explicit dense unique-pair sum (complex eigenvectors)."""
+    rng = numpy.random.default_rng(7)
+    natoms, nbands = 4, 5
+    eigvecs = rng.normal(size=(2, natoms * 3, nbands)) + 1j * rng.normal(size=(2, natoms * 3, nbands))
+    eigvecs /= numpy.linalg.norm(eigvecs, axis=1, keepdims=True)
+    atoms = aseAtoms("H2ON", positions=numpy.zeros((natoms, 3)))  # unequal masses
+
+    G = eigvecs.reshape(2, natoms, 3, nbands) / numpy.sqrt(atoms.get_masses())[None, :, None, None]
+    pair = numpy.einsum("qaxn,qbxn->qabn", G.conj(), G)
+    triu = numpy.triu_indices(natoms)
+    pair_triu = pair[:, triu[0], triu[1], :]
+    reference = (
+        (2 / (natoms * (natoms + 1)))
+        * numpy.abs(pair_triu.sum(axis=1)) ** 2
+        / numpy.sum(numpy.abs(pair_triu) ** 2, axis=1)
+    )
+    assert numpy.allclose(compute_APR(atoms=atoms, ph_eigvecs=eigvecs), reference)
+
+
+def test_apr_mismatched_atom_count_raises():
+    """A structure/eigenvector atom-count mismatch raises with a hint about ph.primitive."""
+    eigvecs = _pack_modes([[1, 0, 0], [1, 0, 0]])  # 2 atoms
+    atoms = aseAtoms("H3", positions=numpy.zeros((3, 3)))
+    with pytest.raises(ValueError, match="ph.primitive"):
+        compute_APR(atoms=atoms, ph_eigvecs=eigvecs)
+
+
 def test_longitudinality_parallel_and_perpendicular():
     """Displacements along q give L = 1, perpendicular to q give L = 0."""
     eigvecs = _pack_modes([[1, 0, 0], [1, 0, 0]], [[0, 1, 0], [0, 1, 0]])
@@ -65,6 +94,26 @@ def test_longitudinality_zero_at_gamma():
     eigvecs = _pack_modes([[1, 0, 0], [1, 0, 0]])
     lgt = compute_L(atoms=_two_atoms(), ph_eigvecs=eigvecs, q=numpy.zeros((1, 3)))
     assert numpy.allclose(lgt, 0.0)
+
+
+def test_longitudinality_amplitude_independent():
+    """A longitudinal mode with unequal per-atom amplitudes still gives L = 1.
+
+    Per-atom normalisation means only displacement directions enter, so a 2:1
+    amplitude ratio along q does not reduce L.
+    """
+    eigvecs = _pack_modes([[2, 0, 0], [1, 0, 0]])
+    q = numpy.array([[1.0, 0.0, 0.0]])
+    lgt = compute_L(atoms=_two_atoms(), ph_eigvecs=eigvecs, q=q)
+    assert numpy.allclose(lgt, 1.0, atol=1e-4)
+
+
+def test_longitudinality_antiphase_is_zero():
+    """An antiphase longitudinal mode averages to L = 0, like a transverse one."""
+    eigvecs = _pack_modes([[1, 0, 0], [-1, 0, 0]])
+    q = numpy.array([[1.0, 0.0, 0.0]])
+    lgt = compute_L(atoms=_two_atoms(), ph_eigvecs=eigvecs, q=q)
+    assert numpy.allclose(lgt, 0.0, atol=1e-4)
 
 
 def test_verticality_out_of_plane_and_in_plane():
