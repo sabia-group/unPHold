@@ -169,9 +169,7 @@ def compute_L(
     nqpoints, natoms3, nbands = ph_eigvecs.shape
     natoms = len(atoms)
     if natoms3 != natoms * 3:
-        raise ValueError(
-            f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 {natoms3}"
-        )
+        raise ValueError(f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 {natoms3}")
     # per-atom direction e_a / |e_a| + regularised by 1e-5 of the average per-atom amplitude |e| / sqrt(N)
     eigvec_norms = numpy.linalg.norm(ph_eigvecs, axis=1)[:, None, None, :]
     ph_eigvec = ph_eigvecs.reshape(nqpoints, natoms, 3, nbands)
@@ -208,9 +206,7 @@ def compute_V_p1(
     nqpoints, natoms3, nbands = ph_eigvecs.shape
     natoms = len(atoms)
     if natoms3 != natoms * 3:
-        raise ValueError(
-            f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 is {natoms3}"
-        )
+        raise ValueError(f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 is {natoms3}")
     ph_eigvec_normed = ph_eigvec_normed.reshape(nqpoints, natoms, 3, nbands)
 
     vtcl = numpy.abs(ph_eigvec_normed[:, :, 2, :])
@@ -265,9 +261,7 @@ def compute_V(
     nqpoints, natoms3, nbands = ph_eigvecs.shape
     natoms = len(atoms)
     if natoms3 != natoms * 3:
-        raise ValueError(
-            f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 is {natoms3}"
-        )
+        raise ValueError(f"atoms/eigenvector mismatch: {natoms} atoms but eigenvector dimension 2 is {natoms3}")
     ph_eigvec_normed = ph_eigvec_normed.reshape(nqpoints, natoms, 3, nbands)
 
     vtcl2 = numpy.abs(ph_eigvec_normed[:, :, 2, :])
