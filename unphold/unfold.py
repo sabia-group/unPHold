@@ -8,6 +8,7 @@ Provides:
 import os
 import pickle
 import time
+import warnings
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
@@ -161,17 +162,18 @@ class Unfold:
         if self.perm_sc2gen is not None:
             if not isinstance(self.perm_sc2gen, numpy.ndarray):
                 raise TypeError(f"perm_sc2gen={self.perm_sc2gen!r} must be a numpy.ndarray")
-            assert self.perm_sc2gen.shape == (len(self.sc_by_tmat),), (
-                f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
-                f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
-            )
+            if self.perm_sc2gen.shape != (len(self.sc_by_tmat),):
+                raise ValueError(
+                    f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
+                    f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
+                )
             _valid = self.perm_sc2gen >= 0
-            assert numpy.all(self.perm_sc2gen[_valid] < len(self.sc)), "perm_sc2gen has out-of-range entries"
-            assert len(numpy.unique(self.perm_sc2gen[_valid])) == _valid.sum(), (
-                "perm_sc2gen must be injective on its non-vacant (>= 0) entries"
-            )
+            if not numpy.all(self.perm_sc2gen[_valid] < len(self.sc)):
+                raise ValueError("perm_sc2gen has out-of-range entries")
+            if len(numpy.unique(self.perm_sc2gen[_valid])) != _valid.sum():
+                raise ValueError("perm_sc2gen must be injective on its non-vacant (>= 0) entries")
         else:
-            print("WARNING: it is strongly recommended to provide perm_sc2gen")
+            warnings.warn("it is strongly recommended to provide perm_sc2gen", stacklevel=2)
             _match = match_two_atoms(self.sc, self.sc_by_tmat, spatial_tolerance=self.spatial_tolerance)
             if _match["fail_reason"] is not None:
                 raise ValueError(_match["fail_reason"])
@@ -183,8 +185,10 @@ class Unfold:
         self.uc_bz = numpy.array(self.uc.cell.reciprocal())
         self.sc_la = numpy.array(self.sc.cell)
         self.sc_bz = numpy.array(self.sc.cell.reciprocal())
-        assert numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2)
-        assert numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2)
+        if not numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2):
+            raise ValueError("supercell lattice is inconsistent with tmat @ unitcell lattice in the xy plane")
+        if not numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2):
+            raise ValueError("unitcell reciprocal lattice is inconsistent with tmat.T @ supercell reciprocal lattice")
 
     def set_kpts_in_unitcell(
         self,
@@ -272,13 +276,14 @@ class Unfold:
             self.bs_sc_energies = bs_sc.frequencies[0]
             self.bs_sc_eigenvecs = bs_sc.eigenvectors[0]
         time_end = time.time()
-        print(
-            f"Band structure: {time_end - time_start:.2f}s for {len(self.kpts_sc_frac)} k-points "
-            f"({(time_end - time_start) / len(self.kpts_sc_frac):.3f}s/k-point)."
-        )
+        if self.verbose:
+            print(
+                f"Band structure: {time_end - time_start:.2f}s for {len(self.kpts_sc_frac)} k-points "
+                f"({(time_end - time_start) / len(self.kpts_sc_frac):.3f}s/k-point)."
+            )
         if save_fpath is not None:
             if not save_fpath.endswith(".npz"):
-                print("WARNING: save_fpath should end with .npz - appending.")
+                warnings.warn("save_fpath should end with .npz - appending.", stacklevel=2)
                 save_fpath += ".npz"
             os.makedirs(os.path.dirname(save_fpath), exist_ok=True)
             numpy.savez(
@@ -456,7 +461,8 @@ class Unfold:
     def load_sc_phonon(self, save_fpath: str) -> float:
         """Load a previously saved supercell phonon band structure.
 
-        Note: This function is no longer used in the current workflow, only for backward compatibility.
+        Note:
+            This function is no longer used in the current workflow, only for backward compatibility.
 
         Args:
             save_fpath (str): Path to the ``.npz`` file written by :meth:`calculate_sc_phonon`.

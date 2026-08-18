@@ -81,6 +81,19 @@ def test_apr_mismatched_atom_count_raises():
         compute_APR(atoms=atoms, ph_eigvecs=eigvecs)
 
 
+def test_l_and_v_mismatched_atom_count_raise():
+    """compute_L / compute_V / compute_V_p1 reject an atoms/eigenvector atom-count mismatch."""
+    eigvecs = _pack_modes([[1, 0, 0], [1, 0, 0]])  # 2 atoms
+    atoms = aseAtoms("H3", positions=numpy.zeros((3, 3)))
+    q = numpy.array([[1.0, 0.0, 0.0]])
+    with pytest.raises(ValueError, match="mismatch"):
+        compute_L(atoms=atoms, ph_eigvecs=eigvecs, q=q)
+    with pytest.raises(ValueError, match="mismatch"):
+        compute_V(atoms=atoms, ph_eigvecs=eigvecs)
+    with pytest.raises(ValueError, match="mismatch"):
+        compute_V_p1(atoms=atoms, ph_eigvecs=eigvecs)
+
+
 def test_longitudinality_parallel_and_perpendicular():
     """Displacements along q give L = 1, perpendicular to q give L = 0."""
     eigvecs = _pack_modes([[1, 0, 0], [1, 0, 0]], [[0, 1, 0], [0, 1, 0]])
