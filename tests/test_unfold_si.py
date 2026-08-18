@@ -1,6 +1,7 @@
 """Integration tests for Unfold using Si FHI-aims data (uc_1_sc_2_aims / uc_2_sc_1_aims)."""
 
 import numpy
+import pytest
 from phonopy import Phonopy
 from phonopy.cui.load import load as load_phonopy
 from phonopy.file_IO import read_force_constants_hdf5
@@ -47,6 +48,7 @@ def _build_si_kpts() -> tuple[list[numpy.ndarray], numpy.ndarray, list[bool], li
     return kpts_uc, kpts_flat, connections, bz_idx
 
 
+@pytest.mark.filterwarnings("ignore:it is strongly recommended to provide perm_sc2gen")
 def test_si_weight_conservation(data_dir):
     """Unfolding weight sum per k-point must equal 3 * n_uc_atoms = 6 (Si 2-atom PC)."""
     ph_sc = _load_si(data_dir, "uc_2_sc_1_aims", primitive_matrix="P")
@@ -69,6 +71,7 @@ def test_si_weight_conservation(data_dir):
     assert abs(weight_sum_mean - expected) < 1e-6, f"Weight sum mean {weight_sum_mean:.8f} != {expected}"
 
 
+@pytest.mark.filterwarnings("ignore:it is strongly recommended to provide perm_sc2gen")
 def test_si_spectral_matches_uc(data_dir):
     """For a perfect SC, unfolded spectral function must reproduce the UC phonon spectrum.
 

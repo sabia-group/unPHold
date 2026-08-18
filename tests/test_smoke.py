@@ -78,7 +78,8 @@ def test_match_two_2d_atoms_pbc_with_2d_frac_shift_identity():
     a = aseAtoms(symbols=["C", "C"], cell=cell, positions=positions, pbc=True)
     b = a.copy()
 
-    result = match_two_2d_atoms_pbc_with_2d_frac_shift(a, b, shift_0_seg=3, shift_1_seg=3)
+    with pytest.warns(UserWarning, match="minimum distance in xy plane"):
+        result = match_two_2d_atoms_pbc_with_2d_frac_shift(a, b, shift_0_seg=3, shift_1_seg=3)
     assert "atoms_indices_a2b" in result
     numpy.testing.assert_array_equal(result["atoms_indices_a2b"], numpy.array([0, 1]))
     numpy.testing.assert_array_equal(result["atoms_indices_b2a"], numpy.array([0, 1]))
@@ -93,9 +94,10 @@ def test_match_two_2d_atoms_pbc_with_2d_frac_shift_no_match():
     a = aseAtoms(symbols=["C", "C"], cell=cell, positions=[[0.0, 0.0, 5.0], [1.0, 1.0, 5.0]], pbc=True)
     b = aseAtoms(symbols=["C", "C"], cell=cell, positions=[[0.3, 0.7, 5.0], [1.6, 0.2, 5.0]], pbc=True)
 
-    result = match_two_2d_atoms_pbc_with_2d_frac_shift(
-        a, b, shift_0_frac=0.01, shift_0_seg=3, shift_1_frac=0.01, shift_1_seg=3
-    )
+    with pytest.warns(UserWarning, match="No match found"):
+        result = match_two_2d_atoms_pbc_with_2d_frac_shift(
+            a, b, shift_0_frac=0.01, shift_0_seg=3, shift_1_frac=0.01, shift_1_seg=3
+        )
     assert "atoms_indices_a2b" not in result
     assert "atoms_dist_list" in result
 
@@ -195,6 +197,7 @@ def test_calculate_pc_rotation_angle_removes_shear():
         assert sc_rot.cell[0, 0] > 0, f"tilt {tilt_deg} deg: first lattice vector not along +x"
 
 
+@pytest.mark.filterwarnings("ignore:it is strongly recommended to provide perm_sc2gen")
 def test_unfold_save_load_roundtrip(tmp_path):
     import pickle
 
