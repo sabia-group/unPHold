@@ -108,7 +108,7 @@ def main(
 
     # --- Figure 1: BLG (reference) band structure, direct diagonalization of the 4-atom UC ---
     ph_blg.run_band_structure(kpts_uc_segs, path_connections=connections, labels=path_labels)
-    bs_blg = ph_blg._band_structure
+    bs_blg = ph_blg.band_structure
     k_dist = numpy.concatenate([d[:-1] if c else d for d, c in zip(bs_blg.distances, connections, strict=True)])
     hsp_x = k_dist[bz_idx]
 

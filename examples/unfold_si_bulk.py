@@ -73,8 +73,8 @@ def main(output: Path):
     ph_uc.run_band_structure(kpts_uc, path_connections=connections)
     ph_sc.run_band_structure(kpts_sc, path_connections=connections)
 
-    bs_uc = ph_uc._band_structure
-    bs_sc = ph_sc._band_structure
+    bs_uc = ph_uc.band_structure
+    bs_sc = ph_sc.band_structure
     k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_sc.distances, connections, strict=True)])
 
     unfold = Unfold(

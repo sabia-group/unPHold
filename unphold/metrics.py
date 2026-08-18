@@ -29,13 +29,15 @@ def compute_APR_from_phonopy(ph: Phonopy) -> list:
     Returns:
         list[numpy.ndarray]: APR per segment, each of shape ``(nqpoints, nbands)``.
     """
-    assert ph._band_structure is not None, "Band structure not computed."
+    bs = ph.band_structure
+    if bs is None:
+        raise ValueError("Band structure not computed. Call ph.run_band_structure(..., with_eigenvectors=True) first.")
     apr_list = []
-    for kseg_idx in range(len(ph._band_structure.qpoints)):
+    for kseg_idx in range(len(bs.qpoints)):
         apr_list.append(
             compute_APR(
                 atoms=atoms_ph2ase(ph.primitive),
-                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
+                ph_eigvecs=bs.eigenvectors[kseg_idx],
             )
         )
     return apr_list
@@ -115,15 +117,17 @@ def compute_L_from_phonopy(ph: Phonopy) -> list:
     Returns:
         list[numpy.ndarray]: L per segment, each of shape ``(nqpoints, nbands)``.
     """
-    assert ph._band_structure is not None, "Band structure not computed."
+    bs = ph.band_structure
+    if bs is None:
+        raise ValueError("Band structure not computed. Call ph.run_band_structure(..., with_eigenvectors=True) first.")
     L_list = []
     cell_reciprocal = atoms_ph2ase(ph.primitive).cell.reciprocal()
-    for kseg_idx in range(len(ph._band_structure.qpoints)):
+    for kseg_idx in range(len(bs.qpoints)):
         L_list.append(
             compute_L(
                 atoms=atoms_ph2ase(ph.primitive),
-                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
-                q=2 * numpy.pi * ph._band_structure.qpoints[kseg_idx] @ cell_reciprocal,
+                ph_eigvecs=bs.eigenvectors[kseg_idx],
+                q=2 * numpy.pi * bs.qpoints[kseg_idx] @ cell_reciprocal,
             )
         )
     return L_list
@@ -217,13 +221,15 @@ def compute_V_from_phonopy(ph: Phonopy) -> list:
     Returns:
         list[numpy.ndarray]: V per segment, each of shape ``(nqpoints, nbands)``.
     """
-    assert ph._band_structure is not None, "Band structure not computed."
+    bs = ph.band_structure
+    if bs is None:
+        raise ValueError("Band structure not computed. Call ph.run_band_structure(..., with_eigenvectors=True) first.")
     V_list = []
-    for kseg_idx in range(len(ph._band_structure.qpoints)):
+    for kseg_idx in range(len(bs.qpoints)):
         V_list.append(
             compute_V(
                 atoms=atoms_ph2ase(ph.primitive),
-                ph_eigvecs=ph._band_structure.eigenvectors[kseg_idx],
+                ph_eigvecs=bs.eigenvectors[kseg_idx],
             )
         )
     return V_list

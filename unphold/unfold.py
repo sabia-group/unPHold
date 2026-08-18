@@ -24,6 +24,9 @@ VASP_TO_THZ = _pu.DefaultToTHz
 VASP_TO_EV = VASP_TO_THZ * _pu.THzToEv
 VASP_TO_CM = VASP_TO_THZ * _pu.THzToCm
 
+# storage format version for Unfold.{save,load}
+_SAVE_FORMAT_VERSION = 1
+
 
 class Unfold:
     """Unfold phonon band structure from a Phonopy supercell (SC) to a unit cell (UC).
@@ -286,26 +289,6 @@ class Unfold:
                 factor=factor,
             )
 
-    def load_sc_phonon(self, save_fpath: str) -> float:
-        """Load a previously saved supercell phonon band structure.
-
-        Args:
-            save_fpath (str): Path to the ``.npz`` file written by :meth:`calculate_sc_phonon`.
-
-        Returns:
-            float: The energy conversion factor used when the file was saved.
-        """
-        if not os.path.exists(save_fpath):
-            raise FileNotFoundError(f"File {save_fpath} does not exist.")
-        data = numpy.load(save_fpath, allow_pickle=True)
-        assert data["bs_sc_energies"].shape[0] == self.kpts_sc_frac.shape[0]
-        assert data["bs_sc_energies"].shape[1] == len(self.sc) * 3
-        assert data["bs_sc_eigenvecs"].shape[1] == len(self.sc) * 3
-        self.bs_sc_energies = data["bs_sc_energies"]
-        self.bs_sc_eigenvecs = data["bs_sc_eigenvecs"]
-        assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
-        return float(data["factor"])
-
     def _calculate_weights_one_kpt_v1(self, kpt_idx: int) -> numpy.ndarray:
         """Spectral weights of every supercell band at one k-point (explicit-basis form).
 
@@ -470,14 +453,50 @@ class Unfold:
             spectral_function_on_grid.append(self._calculate_spectral_function_on_grid_one_kpt(kpt_idx, grid, sigma))
         return numpy.stack(spectral_function_on_grid, axis=0), grid, sigma
 
+    def load_sc_phonon(self, save_fpath: str) -> float:
+        """Load a previously saved supercell phonon band structure.
+
+        Note: This function is no longer used in the current workflow, only for backward compatibility.
+
+        Args:
+            save_fpath (str): Path to the ``.npz`` file written by :meth:`calculate_sc_phonon`.
+
+        Returns:
+            float: The energy conversion factor used when the file was saved.
+        """
+        if not os.path.exists(save_fpath):
+            raise FileNotFoundError(f"File {save_fpath} does not exist.")
+        data = numpy.load(save_fpath, allow_pickle=True)
+        assert data["bs_sc_energies"].shape[0] == self.kpts_sc_frac.shape[0]
+        assert data["bs_sc_energies"].shape[1] == len(self.sc) * 3
+        assert data["bs_sc_eigenvecs"].shape[1] == len(self.sc) * 3
+        self.bs_sc_energies = data["bs_sc_energies"]
+        self.bs_sc_eigenvecs = data["bs_sc_eigenvecs"]
+        assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
+        return float(data["factor"])
+
     def save(self, fpath: str):
-        """Serialise the Unfold object to disk (pickle).
+        """Serialise the Unfold state to disk.
 
         Args:
             fpath (str): Output path.
         """
+        payload = {
+            "format_version": _SAVE_FORMAT_VERSION,
+            "unitcell": self.uc,
+            "supercell": self.sc,
+            "transformation_matrix": self.tmat,
+            "angle": self.angle,
+            "spatial_tolerance": self.spatial_tolerance,
+            "perm_sc2gen": self.perm_sc2gen,
+            "verbose": self.verbose,
+            "kpts_uc_frac": getattr(self, "kpts_uc_frac", None),
+            "bs_sc_energies": getattr(self, "bs_sc_energies", None),
+            "bs_sc_eigenvecs": getattr(self, "bs_sc_eigenvecs", None),
+            "weights": getattr(self, "weights", None),
+        }
         with open(fpath, "wb") as f:
-            pickle.dump(self, f)
+            pickle.dump(payload, f)
 
     @classmethod
     def load(cls, fpath: str) -> "Unfold":
@@ -490,10 +509,28 @@ class Unfold:
             Unfold: Deserialised object.
 
         Raises:
-            TypeError: If the loaded object is not an Unfold instance.
+            ValueError: If the file is not an unPHold save file or its format version is not supported.
         """
         with open(fpath, "rb") as f:
-            loaded_obj = pickle.load(f)
-        if not isinstance(loaded_obj, cls):
-            raise TypeError(f"Loaded object is not an instance of {cls.__name__}")
-        return loaded_obj
+            payload = pickle.load(f)
+        if not isinstance(payload, dict) or payload.get("format_version") != _SAVE_FORMAT_VERSION:
+            raise ValueError(f"{fpath} is not a supported unPHold save file")
+        obj = cls(
+            unitcell=payload["unitcell"],
+            supercell=payload["supercell"],
+            transformation_matrix=payload["transformation_matrix"],
+            angle=payload["angle"],
+            spatial_tolerance=payload["spatial_tolerance"],
+            perm_sc2gen=payload["perm_sc2gen"],
+            verbose=payload["verbose"],
+        )
+        # kpts_sc_frac/kpts_cart are not stored - re-derived from kpts_uc_frac and tmat
+        if payload["kpts_uc_frac"] is not None:
+            obj.set_kpts_in_unitcell(payload["kpts_uc_frac"], format="fractional")
+        if payload["bs_sc_energies"] is not None:
+            obj.bs_sc_energies = payload["bs_sc_energies"]
+        if payload["bs_sc_eigenvecs"] is not None:
+            obj.bs_sc_eigenvecs = payload["bs_sc_eigenvecs"]
+        if payload["weights"] is not None:
+            obj.weights = payload["weights"]
+        return obj

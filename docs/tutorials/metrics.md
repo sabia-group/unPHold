@@ -23,7 +23,7 @@ The metrics need phonon eigenvectors, so the band structure must be run with `wi
 
 ```python
 ph.run_band_structure(kpts, path_connections=connections, with_eigenvectors=True)
-bs = ph._band_structure
+bs = ph.band_structure
 ```
 
 We use the k-path `Γ-M-K-Γ` in the hexagonal Brillouin zone (BZ).

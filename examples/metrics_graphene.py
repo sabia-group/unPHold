@@ -84,7 +84,7 @@ def main(output: Path):
 
     kpts, connections = get_band_qpoints_and_path_connections(KPATH, npoints=101)
     ph.run_band_structure(kpts, path_connections=connections, with_eigenvectors=True)
-    bs = ph._band_structure
+    bs = ph.band_structure
 
     apr = compute_APR_from_phonopy(ph)
     lgt = compute_L_from_phonopy(ph)

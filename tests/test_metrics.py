@@ -165,7 +165,7 @@ def test_from_phonopy_wrappers_match_direct(data_dir):
         [[[0.0, 0.0, 0.0], [0.5, 0.0, 0.0], [2 / 3, 1 / 3, 0.0]]], npoints=3
     )
     ph.run_band_structure(kpts, path_connections=connections, with_eigenvectors=True)
-    bs = ph._band_structure
+    bs = ph.band_structure
     atoms = atoms_ph2ase(ph.primitive)
     cell_reciprocal = atoms.cell.reciprocal()
 

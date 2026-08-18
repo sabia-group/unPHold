@@ -63,7 +63,7 @@ def calculate_pc_rotation_angle(
             - **rot_angle_deg** (float): Rotation angle applied, in degrees.
     """
     sc_from_atoms_pc = make_supercell(atoms_pc, tmat)
-    rot_angle_deg = -numpy.degrees(numpy.arctan(sc_from_atoms_pc.cell[0, 1] / sc_from_atoms_pc.cell[0, 0]))
+    rot_angle_deg = -numpy.degrees(numpy.arctan2(sc_from_atoms_pc.cell[0, 1], sc_from_atoms_pc.cell[0, 0]))
     atoms_pc_rot = atoms_pc.copy()
     atoms_pc_rot.rotate(rot_angle_deg, "z", rotate_cell=True)
     return {

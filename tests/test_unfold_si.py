@@ -94,7 +94,7 @@ def test_si_spectral_matches_uc(data_dir):
 
     # Build reference UC spectral function (weight=1 per mode)
     uc_freqs_flat = numpy.concatenate(
-        [seg[:-1] if c else seg for seg, c in zip(ph_uc._band_structure.frequencies, connections, strict=True)]
+        [seg[:-1] if c else seg for seg, c in zip(ph_uc.band_structure.frequencies, connections, strict=True)]
     )  # (nkpts_flat, n_uc_modes)
     assert uc_freqs_flat.shape[0] == len(kpts_flat)
 
