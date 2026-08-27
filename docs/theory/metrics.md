@@ -1,10 +1,10 @@
 # Metrics for mode characterization
 
 Beyond the unfolding weight, unPHold provides three scalar metrics that characterize the eigenvector of each phonon mode.
-They are computed directly from the phonon eigenvectors, while it is also possible to compute them from the unfolded modes.
-A hands-on tutorial computing and plotting all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
+They can be computed directly from the phonon eigenvectors, or equally from the unfolded modes.
+A hands-on tutorial that computes and plots all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
 
-As a reminder for notations: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.
+As a reminder of notation: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.
 
 ## Acoustic participation ratio (APR)
 
@@ -14,14 +14,16 @@ The acoustic participation ratio[^kamencek] measures how in-phase the atomic dis
 \mathrm{APR}_{\mathbf{q},n} =
 \frac{2}{N(N+1)}
 \frac{
-\left| \sum_{\kappa,\kappa'} \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}} \right|^2
+\left| \sum_{\kappa \leq \kappa'} A_{\kappa\kappa'} \right|^2
 }{
-\sum_{\kappa,\kappa'} \left| \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}} \right|^2
-}
+\sum_{\kappa \leq \kappa'} \left| A_{\kappa\kappa'} \right|^2
+},
+\qquad
+A_{\kappa\kappa'} = \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathbf{q},n}}{\sqrt{m_\kappa m_{\kappa'}}}
 \]
 
 where \(m_\kappa\) are the atomic masses and the sum runs over unique atom pairs.
-\(\mathrm{APR}=1\) indicates an acoustic-like mode (atoms moving in phase), while \(\mathrm{APR}\to 0\) indicates an optic-like mode.
+\(\mathrm{APR}=1\) indicates an acoustic-like mode (atoms moving in phase); \(\mathrm{APR}\to 0\) indicates an optic-like mode.
 Computed by [`unphold.metrics.compute_APR()`][unphold.metrics.compute_APR].
 
 ## Longitudinality (L)
@@ -31,10 +33,13 @@ Longitudinality[^legenstein] measures how much a mode's displacement aligns with
 
 \[
 L_{\mathbf{q},n} =
-\frac{1}{N} \left| \sum_{\kappa=1}^{N} \hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n} \right|
+\frac{1}{N} \left| \sum_{\kappa=1}^{N}
+\frac{\hat{\mathbf{q}} \cdot e^\kappa_{\mathbf{q},n}}{|e^\kappa_{\mathbf{q},n}|} \right|
 \]
 
-\(L=1\) marks a purely longitudinal mode and \(L=0\) a purely transverse one.
+Each atom contributes only its displacement direction, normalised per atom, so displacement amplitudes do not enter.
+\(L=1\) marks a purely longitudinal in-phase mode and \(L=0\) a purely transverse one.
+The projections are averaged with their sign, so an antiphase longitudinal mode also gives \(L=0\).
 Computed by [`unphold.metrics.compute_L()`][unphold.metrics.compute_L].
 
 ## Verticality (V)
@@ -48,7 +53,7 @@ V^{p=2}_{\mathbf{q},n} =
 \]
 
 with \(V=1\) purely out-of-plane, \(V=0\) purely in-plane, and \(V=0.5\) as the threshold (for example a single atom vibrating 45 degrees from the z-axis).
-The complement \((1-V)\) measures the in-plane character of the mode.
+The complement \((1-V)\) measures how in-plane the mode is.
 Computed by [`unphold.metrics.compute_V()`][unphold.metrics.compute_V].
 
 [^kamencek]: T. Kamencek, *Understanding Phonon-Related Properties in Metal-Organic Frameworks for Controlling Their Mechanical and Thermal Characteristics*, PhD thesis, Technische Universität Graz (2022).

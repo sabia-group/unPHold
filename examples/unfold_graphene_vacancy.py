@@ -128,7 +128,7 @@ def main(output: Path, npoints: int = 21):
 
     # Pristine primitive-cell bands, for the physics reference overlay.
     ph_pc.run_band_structure(kpts_uc, path_connections=connections)
-    bs_pc = ph_pc._band_structure
+    bs_pc = ph_pc.band_structure
 
     k_dist = np.concatenate([d[:-1] if c else d for d, c in zip(bs_pc.distances, connections, strict=True)])
     hsp_x = k_dist[bz_idx]

@@ -2,7 +2,7 @@
 
 In this section, we unfold the phonon bands of a relaxed twisted bilayer graphene (TBG) structure onto a graphene primitive cell (PC).
 The following code snippets are extracted from the full script available at [`examples/unfold_tbg.py`](https://github.com/sabia-group/unPHold/blob/main/examples/unfold_tbg.py).
-The forces are obtained from a MACE model, with data available at [`tests/data/tbg`](https://github.com/sabia-group/unPHold/blob/main/tests/data/tbg).
+The forces come from a MACE model; data is available at [`tests/data/tbg`](https://github.com/sabia-group/unPHold/blob/main/tests/data/tbg).
 
 <figure markdown>
   ![Bernal bilayer PC](../assets/blg_pc_ovito.png){ width=220 }
@@ -16,7 +16,7 @@ Twisting one layer relative to the other produces a moiré pattern, and the two 
 A phonon calculation on this cell folds every mode into the mini-BZ and gives dense bands.
 Since the two layers don't share a common PC BZ, we unfold onto one layer's PC BZ instead: this recovers the bilayer's actual band structure (TBG is still a bilayer, coupling and all), plotted in a BZ where we can characterize the bands (acoustic vs. optical, which layer a mode lives on).
 
-We also compute Bernal-stacked bilayer graphene (BLG) phonons as a reference, since its bands are simple and well understood, and use them to check the unfolded TBG spectrum against.
+We also compute Bernal-stacked bilayer graphene (BLG) phonons as a reference, since its bands are simple and well understood, and use them to check the unfolded TBG spectrum.
 In particular, BLG's layer-breathing mode (LBM, the two layers rigidly moving in opposite directions out-of-plane) is a clean, single mode we can look for once we unfold the more complicated TBG case.
 
 For generating twisted bilayer structures, see [this tutorial](https://how-tos.readthedocs.io/en/latest/twist_bilayer/twist_bilayer.html).
@@ -27,7 +27,7 @@ For generating twisted bilayer structures, see [this tutorial](https://how-tos.r
 
 ## Preparing inputs
 
-`unPHold` only needs a `Phonopy` object with force constants, the PC we are going to unfold onto (here `atoms_gp_pc`), and the transformation matrix connecting the two:
+`unPHold` only needs a `Phonopy` object with force constants, the PC we unfold onto (here `atoms_gp_pc`), and the transformation matrix connecting the two:
 
 ```python
 ph_tbg = load(tbg_dir)
@@ -54,7 +54,7 @@ ph_blg = load(blg_dir)
 ## Aligning the primitive cell orientation and Brillouin zone
 
 When the TBG structure was built, its lattice vector 0 was intentionally aligned to the x-axis; the PC we load has no reason to follow that same orientation.
-So `tmat_l0 @ PC` builds an SC with the right shape, but generally the wrong orientation, rotated relative to the actual TBG bottom layer (l0).
+`tmat_l0 @ PC` therefore builds an SC with the right shape but generally the wrong orientation, rotated relative to the actual TBG bottom layer (l0).
 [`calculate_pc_rotation_angle()`][unphold.utils.calculate_pc_rotation_angle] finds the PC rotation that corrects this:
 
 ```python
@@ -154,8 +154,8 @@ Near Γ we also see the flat, non-dispersive LBM around 2.3 THz; we identify and
 
 ## Identifying and visualizing the breathing mode in TBG
 
-`unfold.calculate_sc_phonon` already diagonalizes the full moiré SC at every k-point on the path, including Γ, so `unfold.bs_sc_eigenvecs[0]` / `unfold.bs_sc_energies[0]` give the exact Γ-point eigenmodes directly, with no extra calculation needed.
-We scan them for modes that are optical (low [`compute_APR`][unphold.metrics.compute_APR]), strongly out-of-plane (high [`compute_V`][unphold.metrics.compute_V]), and carry non-negligible layer-0 weight, in the frequency window suggested by the plot above (see the [graphene metrics tutorial](metrics.md) for an introduction to these metrics):
+`unfold.calculate_sc_phonon` already diagonalizes the full moiré SC at every k-point on the path, including Γ, so `unfold.bs_sc_eigenvecs[0]` / `unfold.bs_sc_energies[0]` give the exact Γ-point eigenmodes, with no extra calculation needed.
+We scan them for modes with low [`compute_APR`][unphold.metrics.compute_APR] (not acoustic), high [`compute_V`][unphold.metrics.compute_V] (strongly out-of-plane), and non-negligible layer-0 weight (bilayer collective motion), in the frequency window suggested by the plot above (see the [graphene metrics tutorial](metrics.md) for an introduction to these metrics):
 
 ```python
 cand_mask = (gamma_freqs > 2.0) & (gamma_freqs < 2.6) & (gamma_weights > 0.01)
@@ -169,7 +169,8 @@ For this TBG (twist angle 13.17°), this turns up a single, solid candidate:
 |-----:|-----------:|-------:|-------:|-------:|
 |    5 |     2.2820 | 0.0002 | 1.0000 | 0.4995 |
 
-APR ≈ 0 confirms it is optical (the LBM belongs to the anti-symmetric ZO branch); V = 1 confirms the displacement is almost purely out-of-plane.
+APR $\approx$ 0 does not mean an optical mode, but indicates that the two layers move against each other and cancel in the APR pair sum.
+V = 1 confirms the displacement is almost purely out-of-plane.
 The weight is ≈ 0.5 because a purely out-of-plane, unit-normalized eigenvector splits its weight between the two layers in proportion to how many atoms each one has, and here half the atoms are in the bottom layer.
 
 [`plot_layer_mode_2d`][unphold.visualize.plot_layer_mode_2d] visualizes the real-space displacement of this LBM:
@@ -199,7 +200,7 @@ The same 2.0–2.6 THz candidate search now turns up two modes instead of one:
 |   17 |     2.2822 | 0.0000 | 0.9992 | 0.4197 |
 |   24 |     2.3899 | 0.0000 | 0.9999 | 0.0799 |
 
-Both are still optical and almost purely out-of-plane, and their weights still add up to ≈ 0.5, so the LBM has split into two modes rather than disappeared.
+Both are still optical and almost purely out-of-plane, and their weights still add up to close to 0.5: the LBM has split into two modes rather than disappeared.
 With the larger moiré cell, the breathing amplitude is no longer spatially uniform but modulated over the moiré pattern itself:
 
 <figure markdown>

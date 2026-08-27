@@ -1,5 +1,7 @@
 """Internal utilities."""
 
+import warnings
+
 import numpy
 from ase.atoms import Atoms as aseAtoms
 from ase.build import make_supercell
@@ -10,13 +12,13 @@ def atoms_ase2ph(atoms: aseAtoms) -> PhonopyAtoms:
     """Convert an ASE Atoms object to a PhonopyAtoms object.
 
     Args:
-        atoms (aseAtoms): ASE Atoms object. Must have 3D PBC; a warning is printed if not.
+        atoms (aseAtoms): ASE Atoms object. Must have 3D PBC.
 
     Returns:
         PhonopyAtoms: Equivalent Phonopy structure.
     """
     if not numpy.all(atoms.get_pbc()):
-        print("WARNING: for PhonopyAtoms the pbc must be T T T. Set to T T T.")
+        raise ValueError(f"PhonopyAtoms is always 3D-periodic, but got pbc={atoms.get_pbc()}")
     return PhonopyAtoms(
         symbols=atoms.get_chemical_symbols(),
         cell=atoms.get_cell().array,
@@ -63,7 +65,7 @@ def calculate_pc_rotation_angle(
             - **rot_angle_deg** (float): Rotation angle applied, in degrees.
     """
     sc_from_atoms_pc = make_supercell(atoms_pc, tmat)
-    rot_angle_deg = -numpy.degrees(numpy.arctan(sc_from_atoms_pc.cell[0, 1] / sc_from_atoms_pc.cell[0, 0]))
+    rot_angle_deg = -numpy.degrees(numpy.arctan2(sc_from_atoms_pc.cell[0, 1], sc_from_atoms_pc.cell[0, 0]))
     atoms_pc_rot = atoms_pc.copy()
     atoms_pc_rot.rotate(rot_angle_deg, "z", rotate_cell=True)
     return {
@@ -74,30 +76,32 @@ def calculate_pc_rotation_angle(
 
 def gaussian_function(
     x: numpy.ndarray,
-    mu: int | numpy.ndarray = 0,
+    mu: float | numpy.ndarray = 0.0,
     sigma: float = 1e-2,
 ) -> numpy.ndarray:
     """Gaussian (normal) distribution function.
 
     Args:
-        x (numpy.ndarray): Input array.
-        mu (Union[int, numpy.ndarray]): Mean(s). If ndarray, output is a tensor product
-            of shape ``(*mu.shape, *x.shape)``.
+        x (numpy.ndarray): Input array, 1D, shape ``(nx,)``.
+        mu (float or numpy.ndarray): Mean(s), a scalar or a 1D array of shape ``(nmu,)``.
         sigma (float): Standard deviation.
 
     Returns:
-        numpy.ndarray: Gaussian values.
+        numpy.ndarray: Gaussian values, shape ``(nx,)`` for scalar ``mu``, or ``(nmu, nx)`` for 1D ``mu``.
 
     Raises:
-        ValueError: If ``mu`` is neither int nor numpy.ndarray.
+        ValueError: If ``x`` is not 1D, or ``mu`` is neither a scalar nor a 1D array.
     """
-    if isinstance(mu, int):
-        pass
-    elif isinstance(mu, numpy.ndarray):
-        assert x.ndim == 1
-        mu = mu[..., numpy.newaxis]
+    x = numpy.asarray(x)
+    if x.ndim != 1:
+        raise ValueError(f"x must be a 1D array, got x.ndim={x.ndim}")
+    mu = numpy.asarray(mu)
+    if mu.ndim == 0:
+        pass  # scalar mu is fine
+    elif mu.ndim == 1:
+        mu = mu[:, numpy.newaxis]
     else:
-        raise ValueError("mu should be int or numpy.ndarray, but got " + str(type(mu)))
+        raise ValueError(f"mu must be a scalar or a 1D array, got mu.ndim={mu.ndim}")
     return numpy.exp(-((x - mu) ** 2) / (2 * sigma**2)) / (sigma * numpy.sqrt(2 * numpy.pi))
 
 
@@ -118,7 +122,7 @@ def band_expansion(
     """
     grid_delta_min = numpy.min(numpy.diff(grid))
     if grid_delta_min > sigma:
-        print(f"Warning: grid delta is larger than sigma: {grid_delta_min:.3e} > {sigma:.3e}")
+        warnings.warn(f"grid delta is larger than sigma: {grid_delta_min:.3e} > {sigma:.3e}", stacklevel=2)
     return gaussian_function(grid, energies, sigma)
 
 
@@ -142,7 +146,8 @@ def concatenate_bands(
             - **bz_label_indices** (list[int]): Indices into ``kpts_concat`` corresponding
               to the high-symmetry points (for tick marks in plots).
     """
-    assert len(kpts) == len(connections)
+    if len(kpts) != len(connections):
+        raise ValueError(f"kpts and connections must have the same length, got {len(kpts)} and {len(connections)}")
     kpts_new = []
     for i in range(len(kpts)):
         if connections[i]:
@@ -363,22 +368,23 @@ def match_two_2d_atoms_pbc_with_2d_frac_shift(
             attempted at every shift, to help diagnose the tolerance/search-range settings.
 
     Raises:
-        AssertionError: If ``a`` and ``b`` have different lengths, lack z-direction PBC, or their
+        ValueError: If ``a`` and ``b`` have different lengths, lack z-direction PBC, or their
             cells are inconsistent with a 2D-periodic (xy) layer.
     """
     if tolerance_xyz_scaler is None:
         tolerance_xyz_scaler = numpy.array([1.0, 1.0, 1.0])
     a = a.copy()  # make sure we do not modify the original objects
     b = b.copy()
-    assert len(a) == len(b), "Both Atoms objects must have the same number of atoms."
-    assert a.pbc[2] and b.pbc[2], "Both Atoms objects must have PBC in the z direction."
-    assert numpy.allclose(a.cell[:2], b.cell[:2], rtol=1e-5), "Cells in the xy plane must match."
-    assert numpy.all(numpy.abs(a.cell[2, :2]) <= 1e-6) and numpy.all(numpy.abs(b.cell[2, :2]) <= 1e-6), (
-        "Cells lattice c should have zero components in xy plane."
-    )
-    assert numpy.all(numpy.abs(a.cell[:2, 2]) <= 1e-6) and numpy.all(numpy.abs(b.cell[:2, 2]) <= 1e-6), (
-        "Cells lattice ab should have zero components in z direction."
-    )
+    if len(a) != len(b):
+        raise ValueError(f"Both Atoms objects must have the same number of atoms, got {len(a)} and {len(b)}.")
+    if not (a.pbc[2] and b.pbc[2]):
+        raise ValueError("Both Atoms objects must have PBC in the z direction.")
+    if not numpy.allclose(a.cell[:2], b.cell[:2], rtol=1e-5):
+        raise ValueError("Cells in the xy plane must match.")
+    if not (numpy.all(numpy.abs(a.cell[2, :2]) <= 1e-6) and numpy.all(numpy.abs(b.cell[2, :2]) <= 1e-6)):
+        raise ValueError("Cells lattice c should have zero components in xy plane.")
+    if not (numpy.all(numpy.abs(a.cell[:2, 2]) <= 1e-6) and numpy.all(numpy.abs(b.cell[:2, 2]) <= 1e-6)):
+        raise ValueError("Cells lattice ab should have zero components in z direction.")
     a.cell[2, 2], b.cell[2, 2] = 100.0, 100.0  # set a large value for the z-coordinate to avoid PBC issues
 
     if ignore_z:
@@ -386,9 +392,10 @@ def match_two_2d_atoms_pbc_with_2d_frac_shift(
         atoms_dist_xy = numpy.linalg.norm(a.positions[:, None, :2] - b.positions[None, :, :2], axis=2)
         min_xy_dist = numpy.min(atoms_dist_xy)
         if min_xy_dist < spatial_tolerance:
-            print(
-                f"Warning: minimum distance in xy plane is {min_xy_dist:.3f} < spatial_tolerance={spatial_tolerance}, "
-                "forced ignore_z=True may lead to wrong matching!"
+            warnings.warn(
+                f"minimum distance in xy plane is {min_xy_dist:.3f} < spatial_tolerance={spatial_tolerance}, "
+                "forced ignore_z=True may lead to wrong matching!",
+                stacklevel=2,
             )
 
     z_shift_b2a = numpy.mean(a.positions[:, 2]) - numpy.mean(b.positions[:, 2])
@@ -460,9 +467,10 @@ def match_two_2d_atoms_pbc_with_2d_frac_shift(
                 pass
             else:
                 if_matched_spatially = False
-                print(
+                warnings.warn(
                     "Atomic species do not match, please check the structures visually first, "
-                    "or reduce spatial_tolerance."
+                    "or reduce spatial_tolerance.",
+                    stacklevel=2,
                 )
 
         if if_matched_spatially:
@@ -491,9 +499,10 @@ def match_two_2d_atoms_pbc_with_2d_frac_shift(
             }
 
     if not if_matched_spatially:  # if didn't match, provide suggestions
-        print(
+        warnings.warn(
             "No match found, please check the structures visually first, shift the two structures to a nice "
-            "starting position, and consider tuning spatial_tolerance."
+            "starting position, and consider tuning spatial_tolerance.",
+            stacklevel=2,
         )
     return ret_dict
 
@@ -609,7 +618,7 @@ class RelaxBySpring:
         species_indices = numpy.array([i for i, sym in enumerate(symbols) if sym == species], dtype=int)
 
         if len(species_indices) == 0:
-            print(f"Warning: No atoms of species '{species}' found.")
+            warnings.warn(f"No atoms of species '{species}' found.", stacklevel=2)
             return
 
         if z_target is None:
@@ -649,12 +658,15 @@ class RelaxBySpring:
                 interatomic distance. If False, uses the current distance as equilibrium.
 
         Raises:
-            AssertionError: If ``k_scale_by_r`` is not one of the allowed options, or if
+            ValueError: If ``k_scale_by_r`` is not one of the allowed options, or if
                 ``r_cutoff``/``k`` is not positive.
         """
-        assert k_scale_by_r in [None, "1/r", "1/r^2"], "k_scale_by_r must be None, '1/r' or '1/r^2'"
-        assert r_cutoff > 0, "r_cutoff must be positive"
-        assert k > 0, "k must be positive"
+        if k_scale_by_r not in [None, "1/r", "1/r^2"]:
+            raise ValueError(f"k_scale_by_r must be None, '1/r' or '1/r^2', got {k_scale_by_r!r}")
+        if r_cutoff <= 0:
+            raise ValueError(f"r_cutoff must be positive, got {r_cutoff}")
+        if k <= 0:
+            raise ValueError(f"k must be positive, got {k}")
 
         # Use current or original positions for reference distances
         ref_pos = self._pos_org if fix_distance else self._pos

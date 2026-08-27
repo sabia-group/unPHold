@@ -8,6 +8,11 @@
 - [Phonopy](https://phonopy.github.io/phonopy/) ≥ 3.0
 - [tqdm](https://tqdm.github.io/) ≥ 4.0
 
+!!! note "Phonopy v4 changes the default primitive matrix"
+    Since phonopy v4, `phonopy.load` defaults to `primitive_matrix="auto"` instead of the previous `"P"` (the identity).
+    Be careful when preparing supercell data and loading it for unfolding: always use `primitive_matrix="P"` to keep the input cell unchanged.
+    See the [Si tutorial](tutorials/si.md#preparing-inputs) for details.
+
 ## Install with pip
 
 To install from GitHub:

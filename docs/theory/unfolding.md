@@ -18,7 +18,7 @@ In the harmonic approximation, the second-order force constants \(C\) define the
 gives the phonon frequencies \(\omega_{\mathbf{k}\nu}\) and eigenvectors \(e_{\kappa\alpha,\nu}(\mathbf{k})\) for the mode \(\ket{\mathbf{k},\nu}\),
 where \(\kappa\) indexes atoms in the cell, \(\alpha\) a Cartesian direction, and \(\nu\) the band.
 
-`unPHold` reads harmonic phonons directly from [`phonopy`](https://phonopy.github.io/phonopy/); the phonon calculation itself is carried out by `phonopy`.
+`unPHold` reads harmonic phonons directly from [`phonopy`](https://phonopy.github.io/phonopy/), which performs the phonon calculation.
 
 ## Supercell and k-point folding
 
@@ -100,7 +100,7 @@ w_{\mathbf{k},(\mathbf{K},\nu)} = \frac{1}{N_\text{UC}} \sum_{\mu}
 \]
 
 where \(\mu\) runs over the unit-cell bands.
-A phonon mode is a displacement amplitude on each atom, so both modes are vectors of \(3\,N^\text{SC}_\text{atoms}\) components and the projection is a finite sum over supercell atoms.
+A phonon mode is a displacement amplitude on each atom, so both modes are vectors of \(3\,N^\text{SC}_\text{atoms}\) components, and the projection is a finite sum over supercell atoms.
 
 In the atomic gauge used by `phonopy`, a Bloch mode at \(\mathbf{k}\) carries the phase \(e^{i\mathbf{k}\cdot\mathbf{r}}\) on the atom at position \(\mathbf{r}\).
 In the special case \(\mathbf{G} = 0\), which makes \(\mathbf{k} = \mathbf{K}\), the Bloch phase factors from the supercell mode and the unit-cell mode cancel each other.
@@ -114,14 +114,14 @@ w_{\mathbf{k},\nu} = \frac{1}{N_\text{UC}} \sum_{\mu}
 \sum_{p} e^\text{SC}_{(p\kappa)\alpha,\,\nu}(\mathbf{k}) \right|^2 ,
 \]
 
-where \((p\kappa)\) is the supercell atom that is the \(p\)-th copy of unit-cell atom \(\kappa\),
+where \((p\kappa)\) denotes the \(p\)-th copy of unit-cell atom \(\kappa\) in the supercell,
 and the unit-cell eigenvector \(e^\text{UC}_{\kappa\alpha,\mu}(\mathbf{k})\) is the same on every copy \(p\) (the advantage of \(\mathbf{G} = 0\)).
 
-This equation is a projector: it projects the supercell mode onto the subspace with zero phase factor, the patterns identical on every unit-cell copy.
+This equation is a projector: it projects the supercell mode onto the subspace with zero phase factor, whose patterns are identical on every unit-cell copy.
 The unit-cell eigenvectors form a complete orthonormal basis of that subspace,
 \(\sum_{\mu} e_{\kappa\alpha,\mu}^\text{UC} \left( e_{\kappa'\alpha',\mu}^\text{UC} \right)^{*} = \delta_{\kappa\alpha,\kappa'\alpha'}\),
-so the weight does not depend on them at all[^allen]:
-the sum over \(\mu\) collapses, no unit-cell phonon calculation is needed, and the weight simplifies to the final working equation,
+so the weight does not depend on them[^allen]:
+the sum over \(\mu\) collapses, unfolding needs no unit-cell phonon calculation, and the weight simplifies to the final working equation,
 
 \[
 w_{\mathbf{k},\nu} = \frac{1}{N_\text{UC}} \sum_{\kappa\alpha}

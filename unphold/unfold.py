@@ -8,6 +8,7 @@ Provides:
 import os
 import pickle
 import time
+import warnings
 
 import numpy
 from ase.atoms import Atoms as aseAtoms
@@ -23,6 +24,9 @@ _pu = _get_phonopy_units()
 VASP_TO_THZ = _pu.DefaultToTHz
 VASP_TO_EV = VASP_TO_THZ * _pu.THzToEv
 VASP_TO_CM = VASP_TO_THZ * _pu.THzToCm
+
+# storage format version for Unfold.{save,load}
+_SAVE_FORMAT_VERSION = 1
 
 
 class Unfold:
@@ -119,6 +123,9 @@ class Unfold:
                 to ``sc_by_tmat`` position-by-position (requires equal atom counts and no
                 vacancies).
             verbose (bool): Show progress bars.
+
+        Note:
+            Prepare supercell data and load the supercell with ``primitive_matrix="P"``.
         """
         self.uc = unitcell.copy()
         self.sc = supercell.copy()
@@ -155,17 +162,18 @@ class Unfold:
         if self.perm_sc2gen is not None:
             if not isinstance(self.perm_sc2gen, numpy.ndarray):
                 raise TypeError(f"perm_sc2gen={self.perm_sc2gen!r} must be a numpy.ndarray")
-            assert self.perm_sc2gen.shape == (len(self.sc_by_tmat),), (
-                f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
-                f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
-            )
+            if self.perm_sc2gen.shape != (len(self.sc_by_tmat),):
+                raise ValueError(
+                    f"perm_sc2gen should have shape ({len(self.sc_by_tmat)},) "
+                    f"(one entry per atom of sc_by_tmat), got {self.perm_sc2gen.shape}"
+                )
             _valid = self.perm_sc2gen >= 0
-            assert numpy.all(self.perm_sc2gen[_valid] < len(self.sc)), "perm_sc2gen has out-of-range entries"
-            assert len(numpy.unique(self.perm_sc2gen[_valid])) == _valid.sum(), (
-                "perm_sc2gen must be injective on its non-vacant (>= 0) entries"
-            )
+            if not numpy.all(self.perm_sc2gen[_valid] < len(self.sc)):
+                raise ValueError("perm_sc2gen has out-of-range entries")
+            if len(numpy.unique(self.perm_sc2gen[_valid])) != _valid.sum():
+                raise ValueError("perm_sc2gen must be injective on its non-vacant (>= 0) entries")
         else:
-            print("WARNING: it is strongly recommended to provide perm_sc2gen")
+            warnings.warn("it is strongly recommended to provide perm_sc2gen", stacklevel=2)
             _match = match_two_atoms(self.sc, self.sc_by_tmat, spatial_tolerance=self.spatial_tolerance)
             if _match["fail_reason"] is not None:
                 raise ValueError(_match["fail_reason"])
@@ -177,8 +185,10 @@ class Unfold:
         self.uc_bz = numpy.array(self.uc.cell.reciprocal())
         self.sc_la = numpy.array(self.sc.cell)
         self.sc_bz = numpy.array(self.sc.cell.reciprocal())
-        assert numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2)
-        assert numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2)
+        if not numpy.allclose(self.sc_la[:2, :2], (self.tmat @ self.uc_la)[:2, :2], atol=3e-2):
+            raise ValueError("supercell lattice is inconsistent with tmat @ unitcell lattice in the xy plane")
+        if not numpy.allclose(self.uc_bz[:2, :2], (self.tmat.T @ self.sc_bz)[:2, :2], atol=3e-2):
+            raise ValueError("unitcell reciprocal lattice is inconsistent with tmat.T @ supercell reciprocal lattice")
 
     def set_kpts_in_unitcell(
         self,
@@ -218,7 +228,10 @@ class Unfold:
         This is the most expensive step.
 
         Args:
-            dyn_sc: Dynamical matrix from ``phonopy.dynamical_matrix``.
+            dyn_sc: Dynamical matrix from ``phonopy.dynamical_matrix``. Phonopy builds
+                it on ``phonopy.primitive``, so the Phonopy object must be loaded with
+                ``primitive_matrix="P"`` to keep it on the same cell as ``supercell``
+                (see [`Unfold`][unphold.unfold.Unfold]).
             factor (float or str): Energy unit conversion. Strings: ``"ev"``, ``"mev"``,
                 ``"thz"``, ``"cm"``. Default: ``VASP_TO_EV``.
             save_fpath (str, optional): Path to save results as ``.npz``.
@@ -263,13 +276,14 @@ class Unfold:
             self.bs_sc_energies = bs_sc.frequencies[0]
             self.bs_sc_eigenvecs = bs_sc.eigenvectors[0]
         time_end = time.time()
-        print(
-            f"Band structure: {time_end - time_start:.2f}s for {len(self.kpts_sc_frac)} k-points "
-            f"({(time_end - time_start) / len(self.kpts_sc_frac):.3f}s/k-point)."
-        )
+        if self.verbose:
+            print(
+                f"Band structure: {time_end - time_start:.2f}s for {len(self.kpts_sc_frac)} k-points "
+                f"({(time_end - time_start) / len(self.kpts_sc_frac):.3f}s/k-point)."
+            )
         if save_fpath is not None:
             if not save_fpath.endswith(".npz"):
-                print("WARNING: save_fpath should end with .npz - appending.")
+                warnings.warn("save_fpath should end with .npz - appending.", stacklevel=2)
                 save_fpath += ".npz"
             os.makedirs(os.path.dirname(save_fpath), exist_ok=True)
             numpy.savez(
@@ -279,26 +293,6 @@ class Unfold:
                 kpts_sc_frac=self.kpts_sc_frac,
                 factor=factor,
             )
-
-    def load_sc_phonon(self, save_fpath: str) -> float:
-        """Load a previously saved supercell phonon band structure.
-
-        Args:
-            save_fpath (str): Path to the ``.npz`` file written by :meth:`calculate_sc_phonon`.
-
-        Returns:
-            float: The energy conversion factor used when the file was saved.
-        """
-        if not os.path.exists(save_fpath):
-            raise FileNotFoundError(f"File {save_fpath} does not exist.")
-        data = numpy.load(save_fpath, allow_pickle=True)
-        assert data["bs_sc_energies"].shape[0] == self.kpts_sc_frac.shape[0]
-        assert data["bs_sc_energies"].shape[1] == len(self.sc) * 3
-        assert data["bs_sc_eigenvecs"].shape[1] == len(self.sc) * 3
-        self.bs_sc_energies = data["bs_sc_energies"]
-        self.bs_sc_eigenvecs = data["bs_sc_eigenvecs"]
-        assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
-        return float(data["factor"])
 
     def _calculate_weights_one_kpt_v1(self, kpt_idx: int) -> numpy.ndarray:
         """Spectral weights of every supercell band at one k-point (explicit-basis form).
@@ -464,14 +458,51 @@ class Unfold:
             spectral_function_on_grid.append(self._calculate_spectral_function_on_grid_one_kpt(kpt_idx, grid, sigma))
         return numpy.stack(spectral_function_on_grid, axis=0), grid, sigma
 
+    def load_sc_phonon(self, save_fpath: str) -> float:
+        """Load a previously saved supercell phonon band structure.
+
+        Note:
+            This function is no longer used in the current workflow, only for backward compatibility.
+
+        Args:
+            save_fpath (str): Path to the ``.npz`` file written by :meth:`calculate_sc_phonon`.
+
+        Returns:
+            float: The energy conversion factor used when the file was saved.
+        """
+        if not os.path.exists(save_fpath):
+            raise FileNotFoundError(f"File {save_fpath} does not exist.")
+        data = numpy.load(save_fpath, allow_pickle=True)
+        assert data["bs_sc_energies"].shape[0] == self.kpts_sc_frac.shape[0]
+        assert data["bs_sc_energies"].shape[1] == len(self.sc) * 3
+        assert data["bs_sc_eigenvecs"].shape[1] == len(self.sc) * 3
+        self.bs_sc_energies = data["bs_sc_energies"]
+        self.bs_sc_eigenvecs = data["bs_sc_eigenvecs"]
+        assert numpy.allclose(self.kpts_sc_frac, data["kpts_sc_frac"])
+        return float(data["factor"])
+
     def save(self, fpath: str):
-        """Serialise the Unfold object to disk (pickle).
+        """Serialise the Unfold state to disk.
 
         Args:
             fpath (str): Output path.
         """
+        payload = {
+            "format_version": _SAVE_FORMAT_VERSION,
+            "unitcell": self.uc,
+            "supercell": self.sc,
+            "transformation_matrix": self.tmat,
+            "angle": self.angle,
+            "spatial_tolerance": self.spatial_tolerance,
+            "perm_sc2gen": self.perm_sc2gen,
+            "verbose": self.verbose,
+            "kpts_uc_frac": getattr(self, "kpts_uc_frac", None),
+            "bs_sc_energies": getattr(self, "bs_sc_energies", None),
+            "bs_sc_eigenvecs": getattr(self, "bs_sc_eigenvecs", None),
+            "weights": getattr(self, "weights", None),
+        }
         with open(fpath, "wb") as f:
-            pickle.dump(self, f)
+            pickle.dump(payload, f)
 
     @classmethod
     def load(cls, fpath: str) -> "Unfold":
@@ -484,10 +515,28 @@ class Unfold:
             Unfold: Deserialised object.
 
         Raises:
-            TypeError: If the loaded object is not an Unfold instance.
+            ValueError: If the file is not an unPHold save file or its format version is not supported.
         """
         with open(fpath, "rb") as f:
-            loaded_obj = pickle.load(f)
-        if not isinstance(loaded_obj, cls):
-            raise TypeError(f"Loaded object is not an instance of {cls.__name__}")
-        return loaded_obj
+            payload = pickle.load(f)
+        if not isinstance(payload, dict) or payload.get("format_version") != _SAVE_FORMAT_VERSION:
+            raise ValueError(f"{fpath} is not a supported unPHold save file")
+        obj = cls(
+            unitcell=payload["unitcell"],
+            supercell=payload["supercell"],
+            transformation_matrix=payload["transformation_matrix"],
+            angle=payload["angle"],
+            spatial_tolerance=payload["spatial_tolerance"],
+            perm_sc2gen=payload["perm_sc2gen"],
+            verbose=payload["verbose"],
+        )
+        # kpts_sc_frac/kpts_cart are not stored - re-derived from kpts_uc_frac and tmat
+        if payload["kpts_uc_frac"] is not None:
+            obj.set_kpts_in_unitcell(payload["kpts_uc_frac"], format="fractional")
+        if payload["bs_sc_energies"] is not None:
+            obj.bs_sc_energies = payload["bs_sc_energies"]
+        if payload["bs_sc_eigenvecs"] is not None:
+            obj.bs_sc_eigenvecs = payload["bs_sc_eigenvecs"]
+        if payload["weights"] is not None:
+            obj.weights = payload["weights"]
+        return obj

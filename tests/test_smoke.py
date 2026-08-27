@@ -78,7 +78,8 @@ def test_match_two_2d_atoms_pbc_with_2d_frac_shift_identity():
     a = aseAtoms(symbols=["C", "C"], cell=cell, positions=positions, pbc=True)
     b = a.copy()
 
-    result = match_two_2d_atoms_pbc_with_2d_frac_shift(a, b, shift_0_seg=3, shift_1_seg=3)
+    with pytest.warns(UserWarning, match="minimum distance in xy plane"):
+        result = match_two_2d_atoms_pbc_with_2d_frac_shift(a, b, shift_0_seg=3, shift_1_seg=3)
     assert "atoms_indices_a2b" in result
     numpy.testing.assert_array_equal(result["atoms_indices_a2b"], numpy.array([0, 1]))
     numpy.testing.assert_array_equal(result["atoms_indices_b2a"], numpy.array([0, 1]))
@@ -93,9 +94,10 @@ def test_match_two_2d_atoms_pbc_with_2d_frac_shift_no_match():
     a = aseAtoms(symbols=["C", "C"], cell=cell, positions=[[0.0, 0.0, 5.0], [1.0, 1.0, 5.0]], pbc=True)
     b = aseAtoms(symbols=["C", "C"], cell=cell, positions=[[0.3, 0.7, 5.0], [1.6, 0.2, 5.0]], pbc=True)
 
-    result = match_two_2d_atoms_pbc_with_2d_frac_shift(
-        a, b, shift_0_frac=0.01, shift_0_seg=3, shift_1_frac=0.01, shift_1_seg=3
-    )
+    with pytest.warns(UserWarning, match="No match found"):
+        result = match_two_2d_atoms_pbc_with_2d_frac_shift(
+            a, b, shift_0_frac=0.01, shift_0_seg=3, shift_1_frac=0.01, shift_1_seg=3
+        )
     assert "atoms_indices_a2b" not in result
     assert "atoms_dist_list" in result
 
@@ -175,19 +177,62 @@ def test_calculate_pc_rotation_angle_removes_shear():
 
     from unphold.utils import calculate_pc_rotation_angle
 
-    # hexagonal graphene-like PC, deliberately tilted a few degrees off the x-axis
+    # hexagonal graphene-like PC, deliberately tilted off the x-axis
     cell = numpy.array([[2.46, 0.0, 0.0], [1.23, 2.13042249, 0.0], [0.0, 0.0, 20.0]])
     positions = numpy.array([[0.0, 0.0, 10.0], [1.23, 0.71014083, 10.0]])
     atoms_pc = aseAtoms(symbols=["C", "C"], cell=cell, positions=positions, pbc=True)
-    atoms_pc.rotate(7.0, "z", rotate_cell=True)
-
     tmat = numpy.array([[2, 0, 0], [0, 2, 0], [0, 0, 1]])
+
     result = calculate_pc_rotation_angle(atoms_pc, tmat)
     assert "atoms_pc_rot" in result and "rot_angle_deg" in result
     assert len(result["atoms_pc_rot"]) == len(atoms_pc)
 
-    sc_rot = make_supercell(result["atoms_pc_rot"], tmat)
-    assert abs(sc_rot.cell[0, 1]) < 1e-8  # lattice vector 0 is now exactly along x
+    # tilts past 90 deg would fool an arctan(y/x)-based angle (180 deg ambiguity)
+    for tilt_deg in (7.0, 100.0, 170.0):
+        atoms_pc_tilt = atoms_pc.copy()
+        atoms_pc_tilt.rotate(tilt_deg, "z", rotate_cell=True)
+        result = calculate_pc_rotation_angle(atoms_pc_tilt, tmat)
+        sc_rot = make_supercell(result["atoms_pc_rot"], tmat)
+        assert abs(sc_rot.cell[0, 1]) < 1e-8, f"tilt {tilt_deg} deg: cell[0, 1] not zero"
+        assert sc_rot.cell[0, 0] > 0, f"tilt {tilt_deg} deg: first lattice vector not along +x"
+
+
+@pytest.mark.filterwarnings("ignore:it is strongly recommended to provide perm_sc2gen")
+def test_unfold_save_load_roundtrip(tmp_path):
+    import pickle
+
+    from ase.atoms import Atoms as aseAtoms
+    from ase.build import make_supercell
+
+    from unphold import Unfold
+
+    uc = aseAtoms("C", cell=numpy.eye(3) * 2.0, positions=[[0.0, 0.0, 0.0]], pbc=True)
+    tmat = numpy.diag([2, 2, 2])
+    sc = make_supercell(uc, tmat, wrap=False)
+    unfold = Unfold(unitcell=uc, supercell=sc, transformation_matrix=tmat)
+    unfold.set_kpts_in_unitcell(numpy.array([[0.0, 0.0, 0.0], [0.1, 0.0, 0.0]]), format="fractional")
+    nbands = 3 * len(sc)
+    unfold.bs_sc_energies = numpy.zeros((2, nbands))
+    unfold.bs_sc_eigenvecs = numpy.eye(nbands)[None, ...].repeat(2, axis=0)
+    unfold.weights = numpy.ones((2, nbands))
+
+    fpath = tmp_path / "unfold.pkl"
+    unfold.save(fpath)
+    loaded = Unfold.load(fpath)
+
+    numpy.testing.assert_array_equal(loaded.perm_sc2gen, unfold.perm_sc2gen)
+    numpy.testing.assert_array_equal(loaded.kpts_uc_frac, unfold.kpts_uc_frac)
+    numpy.testing.assert_allclose(loaded.kpts_sc_frac, unfold.kpts_sc_frac)
+    numpy.testing.assert_allclose(loaded.bs_sc_energies, unfold.bs_sc_energies)
+    numpy.testing.assert_allclose(loaded.bs_sc_eigenvecs, unfold.bs_sc_eigenvecs)
+    numpy.testing.assert_allclose(loaded.weights, unfold.weights)
+
+    # a valid pickle that is not an unPHold save payload must be rejected
+    bad_fpath = tmp_path / "not_a_save_file.pkl"
+    with open(bad_fpath, "wb") as f:
+        pickle.dump({"foo": 1}, f)
+    with pytest.raises(ValueError):
+        Unfold.load(bad_fpath)
 
 
 def test_relax_by_spring_origin_spring_pulls_atom_back():
