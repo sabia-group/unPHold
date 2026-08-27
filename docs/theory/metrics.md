@@ -1,10 +1,10 @@
 # Metrics for mode characterization
 
 Beyond the unfolding weight, unPHold provides three scalar metrics that characterize the eigenvector of each phonon mode.
-They are computed directly from the phonon eigenvectors, while it is also possible to compute them from the unfolded modes.
-A hands-on tutorial computing and plotting all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
+They can be computed directly from the phonon eigenvectors, or equally from the unfolded modes.
+A hands-on tutorial that computes and plots all three metrics on monolayer graphene is available at [Graphene phonon mode characterization](../tutorials/metrics.md).
 
-As a reminder for notations: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.
+As a reminder of notation: \(e^\kappa_{\mathbf{q},n}\) is the norm\(=1\) eigenvector component of phonon mode \(n\) at wavevector \(\mathbf{q}\) on atom \(\kappa\), and \(N\) is the number of atoms.
 
 ## Acoustic participation ratio (APR)
 
@@ -23,7 +23,7 @@ A_{\kappa\kappa'} = \dfrac{(e^\kappa_{\mathbf{q},n})^\dagger e^{\kappa'}_{\mathb
 \]
 
 where \(m_\kappa\) are the atomic masses and the sum runs over unique atom pairs.
-\(\mathrm{APR}=1\) indicates an acoustic-like mode (atoms moving in phase), while \(\mathrm{APR}\to 0\) indicates an optic-like mode.
+\(\mathrm{APR}=1\) indicates an acoustic-like mode (atoms moving in phase); \(\mathrm{APR}\to 0\) indicates an optic-like mode.
 Computed by [`unphold.metrics.compute_APR()`][unphold.metrics.compute_APR].
 
 ## Longitudinality (L)
@@ -53,7 +53,7 @@ V^{p=2}_{\mathbf{q},n} =
 \]
 
 with \(V=1\) purely out-of-plane, \(V=0\) purely in-plane, and \(V=0.5\) as the threshold (for example a single atom vibrating 45 degrees from the z-axis).
-The complement \((1-V)\) measures the in-plane character of the mode.
+The complement \((1-V)\) measures how in-plane the mode is.
 Computed by [`unphold.metrics.compute_V()`][unphold.metrics.compute_V].
 
 [^kamencek]: T. Kamencek, *Understanding Phonon-Related Properties in Metal-Organic Frameworks for Controlling Their Mechanical and Thermal Characteristics*, PhD thesis, Technische Universität Graz (2022).

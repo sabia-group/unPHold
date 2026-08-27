@@ -1,6 +1,6 @@
 # unPHold
 
-**unPHold** unfolds phonon band structures from a supercell calculation onto a primitive-cell Brillouin zone, and characterizes each mode.
+**unPHold** unfolds phonon band structures from a supercell calculation onto a primitive-cell Brillouin zone and characterizes each mode.
 
 GitHub repo: [sabia-group/unPHold](https://github.com/sabia-group/unPHold)
 
@@ -15,11 +15,11 @@ Unfolding reverses this down-folding: from a supercell phonon calculation it rec
   <figcaption>
     <strong>Unfolding twisted bilayer graphene phonon bands.</strong>
     <strong>Left:</strong> the raw phonon bands of the moiré supercell, where every mode is folded into the small moiré Brillouin zone, giving dense, hard-to-read bands.
-    <strong>Right:</strong> after unfolding onto one layer's primitive cell (blue), the effective dispersion is recovered and can be compared against a Bernal bilayer reference (red).
+    <strong>Right:</strong> unfolding onto one layer's primitive cell (blue) recovers the effective dispersion. The spetral function matches the Bernal bilayer reference (red).
   </figcaption>
 </figure>
 
-Beyond the unfolding supercell phonon bands, unPHold also characterizes individual modes and visualizes their real-space displacement pattern.
+Beyond unfolding supercell phonon bands, unPHold also characterizes individual modes and visualizes their real-space displacement pattern.
 
 <figure markdown>
   ![Layer-breathing mode of twisted bilayer graphene](assets/tbg_m6r1_viz_lbm_24.png){ width=700 }
@@ -37,7 +37,7 @@ Beyond the unfolding supercell phonon bands, unPHold also characterizes individu
 
 ## Features
 
-- Atom matching for defective, de-registered, and layer-resolved systems.
+- Atom matching for defective, deregistered, and layer-resolved systems.
 - Per-mode unfolding weights and unfolded band structure visualization.
 - Mode-character metrics: acoustic participation ratio (APR), longitudinality (L), and out-of-plane verticality (V).
 - Built on [phonopy](https://phonopy.github.io/phonopy/): unPHold reuses phonopy's force constants and structural metadata, so it works with any force-constant source, including DFT codes and machine-learning interatomic potentials (MLIPs).
