@@ -267,21 +267,3 @@ def compute_V(
     vtcl2 = numpy.abs(ph_eigvec_normed[:, :, 2, :])
     vtcl2 = numpy.sum(vtcl2**2, axis=1)
     return vtcl2
-
-
-def rotmat_xy(angle: float) -> numpy.ndarray:
-    """3×3 rotation matrix for rotation about the z-axis.
-
-    Args:
-        angle (float): Rotation angle in radians.
-
-    Returns:
-        numpy.ndarray: Rotation matrix, shape ``(3, 3)``.
-    """
-    return numpy.array(
-        [
-            [numpy.cos(angle), -numpy.sin(angle), 0],
-            [numpy.sin(angle), numpy.cos(angle), 0],
-            [0, 0, 1],
-        ]
-    )
